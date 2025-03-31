@@ -26,7 +26,7 @@ stringData:
 
 #! reads two secrets and creates a secret from them
 ---
-apiVersion: secretgen.starstreak.dev/v1alpha1
+apiVersion: templatedsecret.starstreak.dev/v1alpha1
 kind: SecretTemplate
 metadata:
   name: new-secret
@@ -82,7 +82,7 @@ SecretTemplate CRD allows to template out a Secret from information on other API
 #! reads the resources created by an instance of the bitnami helm chart and creates a binding secret
 #! example chart installed using the command `helm install my-release bitnami/postgresql`
 ---
-apiVersion: secretgen.starstreak.dev/v1alpha1
+apiVersion: templatedsecret.starstreak.dev/v1alpha1
 kind: SecretTemplate
 metadata:
   name: helm-postgres

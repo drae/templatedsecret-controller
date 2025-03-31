@@ -50,13 +50,13 @@ func NewFilteredSecretTemplateInformer(client versioned.Interface, namespace str
 				if tweakListOptions != nil {
 					tweakListOptions(&options)
 				}
-				return client.SecretgenV1alpha1().SecretTemplates(namespace).List(context.TODO(), options)
+				return client.TemplatedsecretV1alpha1().SecretTemplates(namespace).List(context.TODO(), options)
 			},
 			WatchFunc: func(options v1.ListOptions) (watch.Interface, error) {
 				if tweakListOptions != nil {
 					tweakListOptions(&options)
 				}
-				return client.SecretgenV1alpha1().SecretTemplates(namespace).Watch(context.TODO(), options)
+				return client.TemplatedsecretV1alpha1().SecretTemplates(namespace).Watch(context.TODO(), options)
 			},
 		},
 		&apistemplatedsecretv1alpha1.SecretTemplate{},

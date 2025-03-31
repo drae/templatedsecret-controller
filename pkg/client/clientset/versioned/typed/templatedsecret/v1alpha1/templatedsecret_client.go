@@ -14,24 +14,24 @@ import (
 	rest "k8s.io/client-go/rest"
 )
 
-type SecretgenV1alpha1Interface interface {
+type TemplatedsecretV1alpha1Interface interface {
 	RESTClient() rest.Interface
 	SecretTemplatesGetter
 }
 
-// SecretgenV1alpha1Client is used to interact with features provided by the secretgen.starstreak.dev group.
-type SecretgenV1alpha1Client struct {
+// TemplatedsecretV1alpha1Client is used to interact with features provided by the templatedsecret.starstreak.dev group.
+type TemplatedsecretV1alpha1Client struct {
 	restClient rest.Interface
 }
 
-func (c *SecretgenV1alpha1Client) SecretTemplates(namespace string) SecretTemplateInterface {
+func (c *TemplatedsecretV1alpha1Client) SecretTemplates(namespace string) SecretTemplateInterface {
 	return newSecretTemplates(c, namespace)
 }
 
-// NewForConfig creates a new SecretgenV1alpha1Client for the given config.
+// NewForConfig creates a new TemplatedsecretV1alpha1Client for the given config.
 // NewForConfig is equivalent to NewForConfigAndClient(c, httpClient),
 // where httpClient was generated with rest.HTTPClientFor(c).
-func NewForConfig(c *rest.Config) (*SecretgenV1alpha1Client, error) {
+func NewForConfig(c *rest.Config) (*TemplatedsecretV1alpha1Client, error) {
 	config := *c
 	if err := setConfigDefaults(&config); err != nil {
 		return nil, err
@@ -43,9 +43,9 @@ func NewForConfig(c *rest.Config) (*SecretgenV1alpha1Client, error) {
 	return NewForConfigAndClient(&config, httpClient)
 }
 
-// NewForConfigAndClient creates a new SecretgenV1alpha1Client for the given config and http client.
+// NewForConfigAndClient creates a new TemplatedsecretV1alpha1Client for the given config and http client.
 // Note the http client provided takes precedence over the configured transport values.
-func NewForConfigAndClient(c *rest.Config, h *http.Client) (*SecretgenV1alpha1Client, error) {
+func NewForConfigAndClient(c *rest.Config, h *http.Client) (*TemplatedsecretV1alpha1Client, error) {
 	config := *c
 	if err := setConfigDefaults(&config); err != nil {
 		return nil, err
@@ -54,12 +54,12 @@ func NewForConfigAndClient(c *rest.Config, h *http.Client) (*SecretgenV1alpha1Cl
 	if err != nil {
 		return nil, err
 	}
-	return &SecretgenV1alpha1Client{client}, nil
+	return &TemplatedsecretV1alpha1Client{client}, nil
 }
 
-// NewForConfigOrDie creates a new SecretgenV1alpha1Client for the given config and
+// NewForConfigOrDie creates a new TemplatedsecretV1alpha1Client for the given config and
 // panics if there is an error in the config.
-func NewForConfigOrDie(c *rest.Config) *SecretgenV1alpha1Client {
+func NewForConfigOrDie(c *rest.Config) *TemplatedsecretV1alpha1Client {
 	client, err := NewForConfig(c)
 	if err != nil {
 		panic(err)
@@ -67,9 +67,9 @@ func NewForConfigOrDie(c *rest.Config) *SecretgenV1alpha1Client {
 	return client
 }
 
-// New creates a new SecretgenV1alpha1Client for the given RESTClient.
-func New(c rest.Interface) *SecretgenV1alpha1Client {
-	return &SecretgenV1alpha1Client{c}
+// New creates a new TemplatedsecretV1alpha1Client for the given RESTClient.
+func New(c rest.Interface) *TemplatedsecretV1alpha1Client {
+	return &TemplatedsecretV1alpha1Client{c}
 }
 
 func setConfigDefaults(config *rest.Config) error {
@@ -87,7 +87,7 @@ func setConfigDefaults(config *rest.Config) error {
 
 // RESTClient returns a RESTClient that is used to communicate
 // with API server by this client implementation.
-func (c *SecretgenV1alpha1Client) RESTClient() rest.Interface {
+func (c *TemplatedsecretV1alpha1Client) RESTClient() rest.Interface {
 	if c == nil {
 		return nil
 	}

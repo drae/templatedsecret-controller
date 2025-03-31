@@ -49,4 +49,4 @@ jobs:
           kapp deploy -a sg -f kbld.out -c -y
 
           mkdir tmp
-          SECRETGEN_E2E_NAMESPACE=templatedsecret-test eval './hack/test-e2e.sh'
+          TEMPLATEDSECRET_E2E_NAMESPACE=templatedsecret-test eval './hack/test-e2e.sh'

@@ -11,8 +11,8 @@ SecretGen Controller provides support for generated Kubernetes Secrets.
 
 SecretGen Controller can be deployed in a variety of ways:
 
-- [kapp](https://carvel.dev/kapp/): `kapp deploy -a sgc -f https://github.com/drae/secretgen-controller/releases/latest/download/release.yml`
-- [kubectl](https://github.com/kubernetes/kubectl): `kubectl apply -f https://github.com/drae/secretgen-controller/releases/latest/download/release.yml`
+- [kapp](https://carvel.dev/kapp/): `kapp deploy -a sgc -f https://github.com/drae/templatedsecret-controller/releases/latest/download/release.yml`
+- [kubectl](https://github.com/kubernetes/kubectl): `kubectl apply -f https://github.com/drae/templatedsecretsecret-controller/releases/latest/download/release.yml`
 
 ## Usage
 

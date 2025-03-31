@@ -18,7 +18,7 @@ func TestAddFailsWithEmptyAnnotations(t *testing.T) {
 
 func TestAddSucceedsfulWithDefaultAnnotation(t *testing.T) {
 	defaultAnnotations := map[string]string{
-		"secretgen.k14s.io/generate-inputs": "",
+		"templatedsecret.k14s.io/generate-inputs": "",
 	}
 	err := generator.GenerateInputs{}.Add(defaultAnnotations)
 	assert.Equal(t, nil, err)

@@ -40,9 +40,9 @@ func (f *genericInformer) Lister() cache.GenericLister {
 // TODO extend this to unknown resources with a client pool
 func (f *sharedInformerFactory) ForResource(resource schema.GroupVersionResource) (GenericInformer, error) {
 	switch resource {
-	// Group=secretgen.starstreak.dev, Version=v1alpha1
+	// Group=templatedsecret.starstreak.dev, Version=v1alpha1
 	case v1alpha1.SchemeGroupVersion.WithResource("secrettemplates"):
-		return &genericInformer{resource: resource.GroupResource(), informer: f.Secretgen().V1alpha1().SecretTemplates().Informer()}, nil
+		return &genericInformer{resource: resource.GroupResource(), informer: f.Templatedsecret().V1alpha1().SecretTemplates().Informer()}, nil
 
 	}
 

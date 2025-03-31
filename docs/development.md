@@ -1,6 +1,6 @@
 # Development Guide
 
-This document describes how to develop and contribute to the secretgen-controller project.
+This document describes how to develop and contribute to the templatedsecret-controller project.
 
 ## Prerequisites
 
@@ -12,7 +12,7 @@ This document describes how to develop and contribute to the secretgen-controlle
 ## Project Structure
 
 ```
-secretgen-controller/
+templatedsecretsecret-controller/
 ├── cmd/                  # Application entry points
 ├── config/               # Kubernetes manifests and configuration
 │   ├── kustomize/        # Kustomize-based deployment configs
@@ -31,8 +31,8 @@ secretgen-controller/
 1. Clone the repository:
 
    ```shell
-   git clone https://github.com/drae/secretgen-controller.git
-   cd secretgen-controller
+   git clone https://github.com/drae/templatedsecretsecret-controller.git
+   cd templatedsecretsecret-controller
    ```
 
 2. Install dependencies:

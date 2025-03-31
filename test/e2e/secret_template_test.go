@@ -24,7 +24,7 @@ func TestSecretTemplate_Full_Lifecycle(t *testing.T) {
 
 	testSecretTemplateYaml := `
 ---
-apiVersion: secretgen.carvel.dev/v1alpha1
+apiVersion: templatedsecret.carvel.dev/v1alpha1
 kind: SecretTemplate
 metadata:
   name: combined-secret
@@ -195,7 +195,7 @@ subjects:
 - kind: ServiceAccount
   name: serviceaccount
 ---
-apiVersion: secretgen.carvel.dev/v1alpha1
+apiVersion: templatedsecret.carvel.dev/v1alpha1
 kind: SecretTemplate
 metadata:
   name: combined-secret-sa
@@ -295,7 +295,7 @@ kind: ServiceAccount
 metadata:
   name: insuff-serviceaccount
 ---
-apiVersion: secretgen.carvel.dev/v1alpha1
+apiVersion: templatedsecret.carvel.dev/v1alpha1
 kind: SecretTemplate
 metadata:
   name: combined-secret-insuff-sa

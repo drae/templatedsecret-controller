@@ -1,10 +1,10 @@
-# secretgen-controller
+# templatedsecret-controller
 
 A Kubernetes controller for generating secrets.
 
 ## Overview
 
-secretgen-controller provides a custom resource for generating and managing Kubernetes secrets:
+templatedsecretsecret-controller provides a custom resource for generating and managing Kubernetes secrets:
 
 - **SecretTemplate**: Generate secrets with various types of data (certificates, passwords, SSH and RSA keys)
 
@@ -22,10 +22,10 @@ Deploy the controller directly with kustomize:
 
 ```shell
 # Production deployment
-kubectl apply -k https://github.com/drae/secretgen-controller/config/kustomize/overlays/prod
+kubectl apply -k https://github.com/drae/templatedsecretsecret-controller/config/kustomize/overlays/prod
 
 # Development deployment
-kubectl apply -k https://github.com/drae/secretgen-controller/config/kustomize/overlays/dev
+kubectl apply -k https://github.com/drae/templatedsecretsecret-controller/config/kustomize/overlays/dev
 ```
 
 ### Using pre-built manifests
@@ -33,7 +33,7 @@ kubectl apply -k https://github.com/drae/secretgen-controller/config/kustomize/o
 Download and apply the latest release manifests:
 
 ```shell
-kubectl apply -f https://github.com/drae/secretgen-controller/releases/latest/download/secretgen-controller.yaml
+kubectl apply -f https://github.com/drae/templatedsecretsecret-controller/releases/latest/dowtemplatedsecretplatedsecret-controller.yaml
 ```
 
 ## Usage Examples
@@ -43,7 +43,7 @@ kubectl apply -f https://github.com/drae/secretgen-controller/releases/latest/do
 Create a SecretTemplate to generate a secret with a password:
 
 ```yaml
-apiVersion: secretgen.starstreak.dev/v1alpha1
+apiVersion: templatedsecret.starstreak.dev/v1alpha1
 kind: SecretTemplate
 metadata:
   name: app-password

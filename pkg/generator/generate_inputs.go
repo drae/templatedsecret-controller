@@ -9,7 +9,7 @@ import (
 )
 
 const (
-	GenerateInputsAnnKey = "secretgen.k14s.io/generate-inputs"
+	GenerateInputsAnnKey = "templatedsecret.k14s.io/generate-inputs"
 )
 
 type GenerateInputs struct {

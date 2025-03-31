@@ -242,9 +242,9 @@ type SharedInformerFactory interface {
 	// client.
 	InformerFor(obj runtime.Object, newFunc internalinterfaces.NewInformerFunc) cache.SharedIndexInformer
 
-	Secretgen() templatedsecret.Interface
+	Templatedsecret() templatedsecret.Interface
 }
 
-func (f *sharedInformerFactory) Secretgen() templatedsecret.Interface {
+func (f *sharedInformerFactory) Templatedsecret() templatedsecret.Interface {
 	return templatedsecret.New(f, f.namespace, f.tweakListOptions)
 }

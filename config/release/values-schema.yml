@@ -2,10 +2,10 @@
 ---
 #@overlay/match missing_ok=True
 #@overlay/match-child-defaults
-#@schema/desc "Configuration explicity for developing secretgen-controller"
+#@schema/desc "Configuration explicity for developing templatedsecret-controller"
 dev:
-  #@schema/desc "Location of secretgen-controller image"
-  image_repo: ghcr.io/drae/secretgen-controller
+  #@schema/desc "Location of templatedsecretsecret-controller image"
+  image_repo: ghcr.io/drae/templatedsecretsecret-controller
   #@schema/desc "Development version"
   version: develop
   #@schema/desc "Comma separated list of supported architectures"

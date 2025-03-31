@@ -7,6 +7,7 @@ PLATFORMS ?= linux/amd64,linux/arm64
 
 # Get the currently used golang install path (in GOPATH/bin)
 GOBIN=$(shell go env GOPATH)/bin
+CONTROLLER_GEN=$(GOBIN)/controller-gen
 
 # Build settings
 LDFLAGS := -ldflags="-X 'main.Version=$(TAG)' -buildid="
@@ -28,13 +29,13 @@ build: fmt vet
 
 # Run code generation
 .PHONY: generate
-generate:
+generate: controller-gen
 	$(CONTROLLER_GEN) object:headerFile="code-header-template.txt" paths="./pkg/apis/..."
 
 # Run manifests generation
 .PHONY: manifests
-manifests:
-	$(CONTROLLER_GEN) crd paths="./pkg/apis/..." output:crd:artifacts:config=config/crds
+manifests: controller-gen
+	$(CONTROLLER_GEN) crd paths="./pkg/apis/templatedsecret/v1alpha1" output:crd:artifacts:config=config/crds
 
 # Run fmt against code
 .PHONY: fmt
@@ -59,16 +60,17 @@ docker-push:
 # Find or download controller-gen
 .PHONY: controller-gen
 controller-gen:
+ifeq (, $(shell which controller-gen))
 	@{ \
 	set -e; \
 	CONTROLLER_GEN_TMP_DIR=$$(mktemp -d); \
 	cd $$CONTROLLER_GEN_TMP_DIR; \
 	go mod init tmp; \
-	go get sigs.k8s.io/controller-tools/cmd/controller-gen@v0.11.3; \
-	GOBIN=$(GOBIN) go install sigs.k8s.io/controller-tools/cmd/controller-gen@v0.11.3; \
+	go get sigs.k8s.io/controller-tools/cmd/controller-gen@v0.17.2; \
+	GOBIN=$(GOBIN) go install sigs.k8s.io/controller-tools/cmd/controller-gen@v0.17.2; \
 	rm -rf $$CONTROLLER_GEN_TMP_DIR; \
 	}
-	CONTROLLER_GEN=$(GOBIN)/controller-gen
+endif
 
 # Ensure vendor directory is up-to-date
 .PHONY: vendor

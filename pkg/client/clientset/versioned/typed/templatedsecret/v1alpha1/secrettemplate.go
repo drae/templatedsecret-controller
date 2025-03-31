@@ -44,7 +44,7 @@ type secretTemplates struct {
 }
 
 // newSecretTemplates returns a SecretTemplates
-func newSecretTemplates(c *SecretgenV1alpha1Client, namespace string) *secretTemplates {
+func newSecretTemplates(c *TemplatedsecretV1alpha1Client, namespace string) *secretTemplates {
 	return &secretTemplates{
 		gentype.NewClientWithList[*templatedsecretv1alpha1.SecretTemplate, *templatedsecretv1alpha1.SecretTemplateList](
 			"secrettemplates",

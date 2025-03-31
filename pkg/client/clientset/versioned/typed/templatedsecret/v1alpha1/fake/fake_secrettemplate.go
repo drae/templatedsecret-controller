@@ -15,10 +15,10 @@ import (
 // fakeSecretTemplates implements SecretTemplateInterface
 type fakeSecretTemplates struct {
 	*gentype.FakeClientWithList[*v1alpha1.SecretTemplate, *v1alpha1.SecretTemplateList]
-	Fake *FakeSecretgenV1alpha1
+	Fake *FakeTemplatedsecretV1alpha1
 }
 
-func newFakeSecretTemplates(fake *FakeSecretgenV1alpha1, namespace string) templatedsecretv1alpha1.SecretTemplateInterface {
+func newFakeSecretTemplates(fake *FakeTemplatedsecretV1alpha1, namespace string) templatedsecretv1alpha1.SecretTemplateInterface {
 	return &fakeSecretTemplates{
 		gentype.NewFakeClientWithList[*v1alpha1.SecretTemplate, *v1alpha1.SecretTemplateList](
 			fake.Fake,

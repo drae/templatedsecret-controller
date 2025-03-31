@@ -10,7 +10,7 @@ import (
 	fmt "fmt"
 	http "net/http"
 
-	secretgenv1alpha1 "github.com/drae/templatedsecret-controller/pkg/client/clientset/versioned/typed/templatedsecret/v1alpha1"
+	templatedsecretv1alpha1 "github.com/drae/templatedsecret-controller/pkg/client/clientset/versioned/typed/templatedsecret/v1alpha1"
 	discovery "k8s.io/client-go/discovery"
 	rest "k8s.io/client-go/rest"
 	flowcontrol "k8s.io/client-go/util/flowcontrol"
@@ -18,18 +18,18 @@ import (
 
 type Interface interface {
 	Discovery() discovery.DiscoveryInterface
-	SecretgenV1alpha1() secretgenv1alpha1.SecretgenV1alpha1Interface
+	TemplatedsecretV1alpha1() templatedsecretv1alpha1.TemplatedsecretV1alpha1Interface
 }
 
 // Clientset contains the clients for groups.
 type Clientset struct {
 	*discovery.DiscoveryClient
-	secretgenV1alpha1 *secretgenv1alpha1.SecretgenV1alpha1Client
+	templatedsecretV1alpha1 *templatedsecretv1alpha1.TemplatedsecretV1alpha1Client
 }
 
-// SecretgenV1alpha1 retrieves the SecretgenV1alpha1Client
-func (c *Clientset) SecretgenV1alpha1() secretgenv1alpha1.SecretgenV1alpha1Interface {
-	return c.secretgenV1alpha1
+// TemplatedsecretV1alpha1 retrieves the TemplatedsecretV1alpha1Client
+func (c *Clientset) TemplatedsecretV1alpha1() templatedsecretv1alpha1.TemplatedsecretV1alpha1Interface {
+	return c.templatedsecretV1alpha1
 }
 
 // Discovery retrieves the DiscoveryClient
@@ -76,7 +76,7 @@ func NewForConfigAndClient(c *rest.Config, httpClient *http.Client) (*Clientset,
 
 	var cs Clientset
 	var err error
-	cs.secretgenV1alpha1, err = secretgenv1alpha1.NewForConfigAndClient(&configShallowCopy, httpClient)
+	cs.templatedsecretV1alpha1, err = templatedsecretv1alpha1.NewForConfigAndClient(&configShallowCopy, httpClient)
 	if err != nil {
 		return nil, err
 	}
@@ -101,7 +101,7 @@ func NewForConfigOrDie(c *rest.Config) *Clientset {
 // New creates a new Clientset for the given RESTClient.
 func New(c rest.Interface) *Clientset {
 	var cs Clientset
-	cs.secretgenV1alpha1 = secretgenv1alpha1.New(c)
+	cs.templatedsecretV1alpha1 = templatedsecretv1alpha1.New(c)
 
 	cs.DiscoveryClient = discovery.NewDiscoveryClient(c)
 	return &cs

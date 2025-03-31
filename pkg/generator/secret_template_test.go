@@ -808,7 +808,7 @@ func secretTemplateOwnerRef(name string) metav1.OwnerReference {
 	truthy := true
 
 	return metav1.OwnerReference{
-		APIVersion:         "secretgen.starstreak.dev/v1alpha1",
+		APIVersion:         "templatedsecret.starstreak.dev/v1alpha1",
 		Kind:               "SecretTemplate",
 		Name:               name,
 		Controller:         &truthy,

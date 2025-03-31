@@ -10,7 +10,7 @@ Fields:
 #### Example
 
 ```yaml
-apiVersion: secretgen.k14s.io/v1alpha1
+apiVersion: templatedsecret.k14s.io/v1alpha1
 kind: Password
 metadata:
   name: pg-password
@@ -31,7 +31,7 @@ data:
 With custom secret projection:
 
 ```yaml
-apiVersion: secretgen.k14s.io/v1alpha1
+apiVersion: templatedsecret.k14s.io/v1alpha1
 kind: Password
 metadata:
   name: pg-password

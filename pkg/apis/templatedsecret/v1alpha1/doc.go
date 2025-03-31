@@ -3,5 +3,5 @@
 
 // +k8s:deepcopy-gen=package
 // +k8s:defaulter-gen=TypeMeta
-// +groupName=secretgen.starstreak.dev
+// +groupName=templatedsecret.starstreak.dev
 package v1alpha1

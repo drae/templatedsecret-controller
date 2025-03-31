@@ -8,8 +8,8 @@ package fake
 
 import (
 	clientset "github.com/drae/templatedsecret-controller/pkg/client/clientset/versioned"
-	secretgenv1alpha1 "github.com/drae/templatedsecret-controller/pkg/client/clientset/versioned/typed/templatedsecret/v1alpha1"
-	fakesecretgenv1alpha1 "github.com/drae/templatedsecret-controller/pkg/client/clientset/versioned/typed/templatedsecret/v1alpha1/fake"
+	templatedsecretv1alpha1 "github.com/drae/templatedsecret-controller/pkg/client/clientset/versioned/typed/templatedsecret/v1alpha1"
+	faketemplatedsecretv1alpha1 "github.com/drae/templatedsecret-controller/pkg/client/clientset/versioned/typed/templatedsecret/v1alpha1/fake"
 	"k8s.io/apimachinery/pkg/runtime"
 	"k8s.io/apimachinery/pkg/watch"
 	"k8s.io/client-go/discovery"
@@ -71,7 +71,7 @@ var (
 	_ testing.FakeClient  = &Clientset{}
 )
 
-// SecretgenV1alpha1 retrieves the SecretgenV1alpha1Client
-func (c *Clientset) SecretgenV1alpha1() secretgenv1alpha1.SecretgenV1alpha1Interface {
-	return &fakesecretgenv1alpha1.FakeSecretgenV1alpha1{Fake: &c.Fake}
+// TemplatedsecretV1alpha1 retrieves the TemplatedsecretV1alpha1Client
+func (c *Clientset) TemplatedsecretV1alpha1() templatedsecretv1alpha1.TemplatedsecretV1alpha1Interface {
+	return &faketemplatedsecretv1alpha1.FakeTemplatedsecretV1alpha1{Fake: &c.Fake}
 }
