@@ -8,7 +8,6 @@ import (
 	"strings"
 	"testing"
 
-	sg2v1alpha1 "github.com/drae/templatedsecret-controller/pkg/apis/templatedsecret/v1alpha1"
 	tsv1alpha1 "github.com/drae/templatedsecret-controller/pkg/apis/templatedsecret/v1alpha1"
 	"github.com/ghodss/yaml"
 	"github.com/stretchr/testify/assert"
@@ -24,7 +23,7 @@ func TestSecretTemplate_Full_Lifecycle(t *testing.T) {
 
 	testSecretTemplateYaml := `
 ---
-apiVersion: templatedsecret.carvel.dev/v1alpha1
+apiVersion: templatedsecret.starstreak.dev/v1alpha1
 kind: SecretTemplate
 metadata:
   name: combined-secret
@@ -92,7 +91,7 @@ stringData:
 			Message: "cannot fetch input resource secret1: secrets \"secret1\" not found",
 		})
 
-		var secretTemplate sg2v1alpha1.SecretTemplate
+		var secretTemplate tsv1alpha1.SecretTemplate
 		err := yaml.Unmarshal([]byte(out), &secretTemplate)
 		require.NoError(t, err, "Failed to unmarshal secrettemplate")
 
@@ -110,7 +109,7 @@ stringData:
 			Status: corev1.ConditionTrue,
 		})
 
-		var secretTemplate sg2v1alpha1.SecretTemplate
+		var secretTemplate tsv1alpha1.SecretTemplate
 		err := yaml.Unmarshal([]byte(out), &secretTemplate)
 		require.NoError(t, err, "Failed to unmarshal secrettemplate")
 
@@ -127,7 +126,7 @@ stringData:
 			Status: corev1.ConditionTrue,
 		})
 
-		var secretTemplate sg2v1alpha1.SecretTemplate
+		var secretTemplate tsv1alpha1.SecretTemplate
 		err := yaml.Unmarshal([]byte(out), &secretTemplate)
 		require.NoError(t, err, "Failed to unmarshal secrettemplate")
 
@@ -195,7 +194,7 @@ subjects:
 - kind: ServiceAccount
   name: serviceaccount
 ---
-apiVersion: templatedsecret.carvel.dev/v1alpha1
+apiVersion: templatedsecret.starstreak.dev/v1alpha1
 kind: SecretTemplate
 metadata:
   name: combined-secret-sa
@@ -257,7 +256,7 @@ spec:
 			Status: corev1.ConditionTrue,
 		})
 
-		var secretTemplate sg2v1alpha1.SecretTemplate
+		var secretTemplate tsv1alpha1.SecretTemplate
 		err := yaml.Unmarshal([]byte(out), &secretTemplate)
 		require.NoError(t, err, "Failed to unmarshal secrettemplate")
 
@@ -295,7 +294,7 @@ kind: ServiceAccount
 metadata:
   name: insuff-serviceaccount
 ---
-apiVersion: templatedsecret.carvel.dev/v1alpha1
+apiVersion: templatedsecret.starstreak.dev/v1alpha1
 kind: SecretTemplate
 metadata:
   name: combined-secret-insuff-sa
@@ -342,7 +341,7 @@ spec:
 			Message: "cannot fetch input resource secret1: secrets \"secret1\" not found",
 		})
 
-		var secretTemplate sg2v1alpha1.SecretTemplate
+		var secretTemplate tsv1alpha1.SecretTemplate
 		err := yaml.Unmarshal([]byte(out), &secretTemplate)
 		require.NoError(t, err, "Failed to unmarshal secrettemplate")
 

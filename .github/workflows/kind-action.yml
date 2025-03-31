@@ -22,31 +22,72 @@ jobs:
         uses: helm/kind-action@v1
         with:
           cluster_name: kinder
+          
       - name: Check out code into the Go module directory
         uses: actions/checkout@v4
         with:
           fetch-depth: 0
+          
       - name: Set up go
         uses: actions/setup-go@v5
         with:
           go-version-file: go.mod
-      - name: Install Carvel Tools
-        uses: carvel-dev/setup-action@v2
-        with:
-          token: ${{ secrets.GITHUB_TOKEN }}
-          only: ytt, kapp, kbld
-          ytt: v0.45.4
-          kapp: v0.58.0
-          kbld: v0.37.5
-      # Run benchmark with `go test -bench` and stores the output to a file
-      - name: Install sg and run e2e tests on kind
+      
+      - name: Build controller image
         run: |
-          set -e -x
-          kubectl version
-
-          ytt -f config/package-bundle/config -f config/dev | kbld -f- > kbld.out 2> kbldmeta.out
-          cat kbldmeta.out | tail -n 1 | sed 's/.*final: templatedsecret-controller -> \(.*\)$/\1/p'  | tail -n 1 | xargs kind load docker-image --name kinder
-          kapp deploy -a sg -f kbld.out -c -y
-
-          mkdir tmp
-          TEMPLATEDSECRET_E2E_NAMESPACE=templatedsecret-test eval './hack/test-e2e.sh'
+          make docker-build
+          
+      - name: Load image to Kind
+        run: |
+          kind load docker-image --name kinder ${IMG}:${TAG}
+      
+      - name: Deploy CRDs
+        run: |
+          make manifests
+          kubectl apply -f config/kustomize/base/crds/
+      
+      - name: Deploy controller
+        run: |
+          # Create namespace if it doesn't exist
+          kubectl create namespace templatedsecret-system --dry-run=client -o yaml | kubectl apply -f -
+          
+          # Create deployment and rbac resources
+          kubectl apply -f config/kustomize/base/rbac/
+          
+          # Apply deployment with the correct image
+          cat <<EOF | kubectl apply -f -
+          apiVersion: apps/v1
+          kind: Deployment
+          metadata:
+            name: templatedsecret-controller
+            namespace: templatedsecret-system
+          spec:
+            replicas: 1
+            selector:
+              matchLabels:
+                app: templatedsecret-controller
+            template:
+              metadata:
+                labels:
+                  app: templatedsecret-controller
+              spec:
+                containers:
+                - name: controller
+                  image: ${IMG}:${TAG}
+                  resources:
+                    limits:
+                      cpu: 100m
+                      memory: 128Mi
+                    requests:
+                      cpu: 100m
+                      memory: 128Mi
+                serviceAccountName: templatedsecret-controller
+          EOF
+          
+          # Wait for deployment to be ready
+          kubectl -n templatedsecret-system wait deployment/templatedsecret-controller --for=condition=Available --timeout=60s
+      
+      - name: Run E2E tests
+        run: |
+          mkdir -p tmp
+          TEMPLATEDSECRET_E2E_NAMESPACE=templatedsecret-test ./hack/test-e2e.sh

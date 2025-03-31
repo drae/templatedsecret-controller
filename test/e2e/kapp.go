@@ -13,6 +13,8 @@ import (
 	"testing"
 )
 
+// Kapp is now implemented using kubectl to maintain backward compatibility
+// with existing tests while removing the dependency on Carvel tools
 type Kapp struct {
 	t         *testing.T
 	namespace string
@@ -37,21 +39,48 @@ func (k Kapp) Run(args []string) string {
 }
 
 func (k Kapp) RunWithOpts(args []string, opts RunOpts) (string, error) {
+	// Convert kapp commands to kubectl commands
+	if len(args) < 2 {
+		k.t.Fatalf("Invalid kapp command: %v", args)
+		return "", fmt.Errorf("invalid command format")
+	}
+
+	var kubectlArgs []string
+	var kubectlStdin io.Reader = opts.StdinReader
+
+	// Map kapp operations to kubectl operations
+	switch args[0] {
+	case "deploy":
+		// Handle kapp deploy -f - -a name
+		if args[1] == "-f" && args[2] == "-" {
+			// For kapp deploy -f - -a name, we'll use kubectl apply
+			kubectlArgs = []string{"apply"}
+		}
+	case "delete":
+		// Handle kapp delete -a name
+		if args[1] == "-a" {
+			// For kapp delete -a name, we'll use kubectl delete -f -
+			// This requires the caller to manage what gets deleted
+			kubectlArgs = []string{"delete", "--ignore-not-found=true"}
+		}
+	default:
+		k.t.Fatalf("Unsupported kapp command: %v", args)
+		return "", fmt.Errorf("unsupported kapp command: %v", args)
+	}
+
 	if !opts.NoNamespace {
-		args = append(args, []string{"-n", k.namespace}...)
-	}
-	if opts.IntoNs {
-		args = append(args, []string{"--into-ns", k.namespace}...)
-	}
-	if !opts.Interactive {
-		args = append(args, "--yes")
+		kubectlArgs = append(kubectlArgs, []string{"-n", k.namespace}...)
 	}
 
-	k.l.Debugf("Running '%s'...\n", k.cmdDesc(args, opts))
+	if kubectlArgs[0] == "apply" || kubectlArgs[0] == "delete" {
+		kubectlArgs = append(kubectlArgs, "-f", "-")
+	}
 
-	cmdName := "kapp"
-	cmd := exec.Command(cmdName, args...)
-	cmd.Stdin = opts.StdinReader
+	k.l.Debugf("Running '%s'...\n", k.cmdDesc(kubectlArgs, opts))
+
+	cmdName := "kubectl"
+	cmd := exec.Command(cmdName, kubectlArgs...)
+	cmd.Stdin = kubectlStdin
 
 	var stderr, stdout bytes.Buffer
 
@@ -83,7 +112,7 @@ func (k Kapp) RunWithOpts(args []string, opts RunOpts) (string, error) {
 		err = fmt.Errorf("Execution error: stdout: '%s' stderr: '%s' error: '%s'", stdoutStr, stderr.String(), err)
 
 		if !opts.AllowError {
-			k.t.Fatalf("Failed to successfully execute '%s': %v", k.cmdDesc(args, opts), err)
+			k.t.Fatalf("Failed to successfully execute '%s': %v", k.cmdDesc(kubectlArgs, opts), err)
 		}
 	}
 
@@ -91,7 +120,7 @@ func (k Kapp) RunWithOpts(args []string, opts RunOpts) (string, error) {
 }
 
 func (k Kapp) cmdDesc(args []string, opts RunOpts) string {
-	prefix := "kapp"
+	prefix := "kubectl" // Changed from kapp to kubectl
 	if opts.Redact {
 		return prefix + " -redacted-"
 	}
