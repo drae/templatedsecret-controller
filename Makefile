@@ -4,6 +4,8 @@
 IMG ?= ghcr.io/drae/templatedsecret-controller
 TAG ?= $(shell git describe --tags --always --dirty 2>/dev/null || echo "dev")
 PLATFORMS ?= linux/amd64,linux/arm64
+# Allow skipping platform flags in environments that don't support it
+DOCKER_BUILD_PLATFORM_FLAGS ?= --platform=$(PLATFORMS)
 
 # Get the currently used golang install path (in GOPATH/bin)
 GOBIN=$(shell go env GOPATH)/bin
@@ -50,12 +52,12 @@ vet:
 # Build the docker image
 .PHONY: docker-build
 docker-build:
-	docker buildx build --platform=$(PLATFORMS) --build-arg SGCTRL_VER=$(TAG) -t ${IMG}:${TAG} .
+	docker buildx build $(DOCKER_BUILD_PLATFORM_FLAGS) --build-arg SGCTRL_VER=$(TAG) -t ${IMG}:${TAG} .
 
 # Push the docker image
 .PHONY: docker-push
 docker-push:
-	docker buildx build --platform=$(PLATFORMS) --build-arg SGCTRL_VER=$(TAG) -t ${IMG}:${TAG} --push .
+	docker buildx build $(DOCKER_BUILD_PLATFORM_FLAGS) --build-arg SGCTRL_VER=$(TAG) -t ${IMG}:${TAG} --push .
 
 # Find or download controller-gen
 .PHONY: controller-gen

@@ -22,38 +22,45 @@ jobs:
         uses: helm/kind-action@v1
         with:
           cluster_name: kinder
-          
+
       - name: Check out code into the Go module directory
         uses: actions/checkout@v4
         with:
           fetch-depth: 0
-          
+
       - name: Set up go
         uses: actions/setup-go@v5
         with:
           go-version-file: go.mod
-      
+
+      # Set up Docker BuildX with a builder that supports multi-platform builds
+      - name: Set up Docker Buildx
+        uses: docker/setup-buildx-action@v3
+        with:
+          install: true
+          driver-opts: image=moby/buildkit:buildx-stable-1
+
       - name: Build controller image
         run: |
-          make docker-build
-          
+          make docker-build PLATFORMS=linux/amd64
+
       - name: Load image to Kind
         run: |
           kind load docker-image --name kinder ${IMG}:${TAG}
-      
+
       - name: Deploy CRDs
         run: |
           make manifests
           kubectl apply -f config/kustomize/base/crds/
-      
+
       - name: Deploy controller
         run: |
           # Create namespace if it doesn't exist
           kubectl create namespace templatedsecret-system --dry-run=client -o yaml | kubectl apply -f -
-          
+
           # Create deployment and rbac resources
           kubectl apply -f config/kustomize/base/rbac/
-          
+
           # Apply deployment with the correct image
           cat <<EOF | kubectl apply -f -
           apiVersion: apps/v1
@@ -83,10 +90,10 @@ jobs:
                       memory: 128Mi
                 serviceAccountName: templatedsecret-controller
           EOF
-          
+
           # Wait for deployment to be ready
           kubectl -n templatedsecret-system wait deployment/templatedsecret-controller --for=condition=Available --timeout=60s
-      
+
       - name: Run E2E tests
         run: |
           mkdir -p tmp
