@@ -4,7 +4,13 @@ metadata:
   name: templatedsecret-controller
 spec:
   replicas: 2
+  selector:
+    matchLabels:
+      app: templatedsecret-controller
   template:
+    metadata:
+      labels:
+        app: templatedsecret-controller
     spec:
       containers:
         - name: controller

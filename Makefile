@@ -35,7 +35,7 @@ generate: controller-gen
 # Run manifests generation
 .PHONY: manifests
 manifests: controller-gen
-	$(CONTROLLER_GEN) crd paths="./pkg/apis/templatedsecret/v1alpha1" output:crd:artifacts:config=config/crds
+	$(CONTROLLER_GEN) crd paths="./pkg/apis/templatedsecret/v1alpha1" output:crd:artifacts:config=config/kustomize/base/crds
 
 # Run fmt against code
 .PHONY: fmt

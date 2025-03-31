@@ -1,14 +1,15 @@
 apiVersion: v1
 kind: Service
 metadata:
-  name: templatedsecret-controller-metrics
   labels:
     app: templatedsecret-controller
+  name: templatedsecret-controller-metrics
+  namespace: templatedsecret-controller
 spec:
   ports:
     - name: metrics
       port: 8080
-      targetPort: 8080
       protocol: TCP
+      targetPort: 8080
   selector:
     app: templatedsecret-controller

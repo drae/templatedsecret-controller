@@ -9,8 +9,9 @@ resources:
 
 namespace: templatedsecret-controller
 
-commonLabels:
-  app: templatedsecret-controller
+labels:
+  - pairs:
+      app: templatedsecret-controller
 
 images:
   - name: controller
