@@ -1,0 +1,15 @@
+apiVersion: kustomize.config.k8s.io/v1beta1
+kind: Kustomization
+
+resources:
+  - ../../base
+
+namespace: templatedsecret-controller
+
+images:
+  - name: controller
+    newName: ghcr.io/drae/templatedsecret-controller
+    newTag: stable
+
+patchesStrategicMerge:
+  - patches/deployment.yaml

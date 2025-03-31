@@ -1,0 +1,33 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: templatedsecret-controller
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: templatedsecret-controller
+  template:
+    metadata:
+      labels:
+        app: templatedsecret-controller
+    spec:
+      serviceAccountName: templatedsecret-controller
+      containers:
+        - name: controller
+          image: controller:latest
+          resources:
+            requests:
+              cpu: 100m
+              memory: 30Mi
+            limits:
+              cpu: 100m
+              memory: 50Mi
+          securityContext:
+            runAsNonRoot: true
+            allowPrivilegeEscalation: false
+            capabilities:
+              drop:
+                - ALL
+          args:
+            - --metrics-bind-address=:8080

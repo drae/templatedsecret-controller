@@ -1,0 +1,9 @@
+.DS_Store
+/controller
+/controller-linux-amd64
+/tmp
+/Dockerfile.dev
+.idea
+/dist
+/.archive
+/.env

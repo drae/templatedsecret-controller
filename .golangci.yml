@@ -1,0 +1,13 @@
+version: 1.50.0
+run:
+  timeout: 5m
+linters:
+  enable:
+    - goheader
+    - revive
+    - unused
+# all available settings of specific linters
+issues:
+  max-issues-per-linter: 0
+  max-same-issues: 0
+  new-from-rev: ae7b7b79a75756ae3cec92e8bb8c6bf0c4dab48e
