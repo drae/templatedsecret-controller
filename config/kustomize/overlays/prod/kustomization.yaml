@@ -4,7 +4,7 @@ kind: Kustomization
 resources:
   - ../../base
 
-namespace: templatedsecret-controller
+namespace: templated-secret
 
 images:
   - name: controller

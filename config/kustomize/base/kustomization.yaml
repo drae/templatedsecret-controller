@@ -7,7 +7,7 @@ resources:
   - service.yaml
   - crds/templatedsecret.starstreak.dev_secrettemplates.yaml
 
-namespace: templatedsecret-controller
+namespace: templated-secret
 
 labels:
   - pairs:

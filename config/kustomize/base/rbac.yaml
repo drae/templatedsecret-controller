@@ -29,4 +29,4 @@ roleRef:
 subjects:
   - kind: ServiceAccount
     name: templatedsecret-controller
-    namespace: templatedsecret-controller
+    namespace: templated-secret

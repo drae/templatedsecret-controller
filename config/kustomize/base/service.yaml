@@ -4,7 +4,7 @@ metadata:
   labels:
     app: templatedsecret-controller
   name: templatedsecret-controller-metrics
-  namespace: templatedsecret-controller
+  namespace: templated-secret
 spec:
   ports:
     - name: metrics
