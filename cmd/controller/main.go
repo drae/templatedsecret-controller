@@ -9,10 +9,10 @@ import (
 	"os"
 	"time"
 
-	tsv1alpha1 "github.com/drae/templatedsecret-controller/pkg/apis/templatedsecret/v1alpha1"
-	"github.com/drae/templatedsecret-controller/pkg/generator"
-	"github.com/drae/templatedsecret-controller/pkg/satoken"
-	"github.com/drae/templatedsecret-controller/pkg/tracker"
+	tsv1alpha1 "github.com/drae/templated-secret-controller/pkg/apis/templatedsecret/v1alpha1"
+	"github.com/drae/templated-secret-controller/pkg/generator"
+	"github.com/drae/templated-secret-controller/pkg/satoken"
+	"github.com/drae/templated-secret-controller/pkg/tracker"
 
 	"github.com/go-logr/logr"
 	"k8s.io/client-go/kubernetes"
@@ -31,7 +31,7 @@ import (
 )
 
 var (
-	// Version of templatedsecret-controller is set via ldflags at build-time from most recent git tag
+	// Version of templated-secret-controller is set via ldflags at build-time from most recent git tag
 	Version = "develop"
 
 	log                = logf.Log.WithName("ts")
@@ -50,7 +50,7 @@ func main() {
 	logf.SetLogger(zap.New(zap.UseFlagOptions(&opts)))
 
 	entryLog := log.WithName("entrypoint")
-	entryLog.Info("templatedsecret-controller", "version", Version)
+	entryLog.Info("templated-secret-controller", "version", Version)
 
 	entryLog.Info("setting up manager")
 	restConfig := config.GetConfigOrDie()
@@ -85,7 +85,7 @@ func main() {
 
 	// tsClient is currently unused. Uncomment the following lines if needed in the future.
 	// tsClient, err := tsclient.NewForConfig(restConfig)
-	// exitIfErr(entryLog, "building templatedsecret client", err)
+	// exitIfErr(entryLog, "building templated-secret client", err)
 
 	saLoader := generator.NewServiceAccountLoader(satoken.NewManager(coreClient, log.WithName("template")))
 

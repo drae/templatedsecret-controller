@@ -1,15 +1,15 @@
 apiVersion: apps/v1
 kind: Deployment
 metadata:
-  name: templatedsecret-controller
+  name: templated-secret-controller
 spec:
   selector:
     matchLabels:
-      app: templatedsecret-controller
+      app: templated-secret-controller
   template:
     metadata:
       labels:
-        app: templatedsecret-controller
+        app: templated-secret-controller
     spec:
       containers:
         - name: controller

@@ -5,7 +5,7 @@
 
 set -euo pipefail
 
-FILE=${1:-"dist/templatedsecret-controller-base.yaml"}
+FILE=${1:-"dist/templated-secret-controller-base.yaml"}
 
 echo "Validating Kubernetes manifests in $FILE..."
 

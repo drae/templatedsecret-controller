@@ -1,7 +1,7 @@
-# Makefile for templatedsecret-controller
+# Makefile for templated-secret-controller
 
 # Image settings
-IMG ?= ghcr.io/drae/templatedsecret-controller
+IMG ?= ghcr.io/drae/templated-secret-controller
 TAG ?= $(shell git describe --tags --always --dirty 2>/dev/null || echo "dev")
 PLATFORMS ?= linux/amd64,linux/arm64
 # Allow skipping platform flags in environments that don't support it

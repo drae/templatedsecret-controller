@@ -7,8 +7,8 @@
 package fake
 
 import (
-	v1alpha1 "github.com/drae/templatedsecret-controller/pkg/apis/templatedsecret/v1alpha1"
-	templatedsecretv1alpha1 "github.com/drae/templatedsecret-controller/pkg/client/clientset/versioned/typed/templatedsecret/v1alpha1"
+	v1alpha1 "github.com/drae/templated-secret-controller/pkg/apis/templatedsecret/v1alpha1"
+	templatedsecretv1alpha1 "github.com/drae/templated-secret-controller/pkg/client/clientset/versioned/typed/templatedsecret/v1alpha1"
 	gentype "k8s.io/client-go/gentype"
 )
 

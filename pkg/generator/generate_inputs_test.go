@@ -7,7 +7,7 @@ import (
 	"errors"
 	"testing"
 
-	"github.com/drae/templatedsecret-controller/pkg/generator"
+	"github.com/drae/templated-secret-controller/pkg/generator"
 	"github.com/stretchr/testify/assert"
 )
 
@@ -18,7 +18,7 @@ func TestAddFailsWithEmptyAnnotations(t *testing.T) {
 
 func TestAddSucceedsfulWithDefaultAnnotation(t *testing.T) {
 	defaultAnnotations := map[string]string{
-		"templatedsecret.k14s.io/generate-inputs": "",
+		"templatedsecret.starstreak.dev/generate-inputs": "",
 	}
 	err := generator.GenerateInputs{}.Add(defaultAnnotations)
 	assert.Equal(t, nil, err)

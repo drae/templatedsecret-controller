@@ -7,9 +7,9 @@
 package fake
 
 import (
-	clientset "github.com/drae/templatedsecret-controller/pkg/client/clientset/versioned"
-	templatedsecretv1alpha1 "github.com/drae/templatedsecret-controller/pkg/client/clientset/versioned/typed/templatedsecret/v1alpha1"
-	faketemplatedsecretv1alpha1 "github.com/drae/templatedsecret-controller/pkg/client/clientset/versioned/typed/templatedsecret/v1alpha1/fake"
+	clientset "github.com/drae/templated-secret-controller/pkg/client/clientset/versioned"
+	templatedsecretv1alpha1 "github.com/drae/templated-secret-controller/pkg/client/clientset/versioned/typed/templatedsecret/v1alpha1"
+	faketemplatedsecretv1alpha1 "github.com/drae/templated-secret-controller/pkg/client/clientset/versioned/typed/templatedsecret/v1alpha1/fake"
 	"k8s.io/apimachinery/pkg/runtime"
 	"k8s.io/apimachinery/pkg/watch"
 	"k8s.io/client-go/discovery"

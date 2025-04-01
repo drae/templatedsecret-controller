@@ -7,8 +7,8 @@
 package templatedsecret
 
 import (
-	internalinterfaces "github.com/drae/templatedsecret-controller/pkg/client/informers/externalversions/internalinterfaces"
-	v1alpha1 "github.com/drae/templatedsecret-controller/pkg/client/informers/externalversions/templatedsecret/v1alpha1"
+	internalinterfaces "github.com/drae/templated-secret-controller/pkg/client/informers/externalversions/internalinterfaces"
+	v1alpha1 "github.com/drae/templated-secret-controller/pkg/client/informers/externalversions/templatedsecret/v1alpha1"
 )
 
 // Interface provides access to each of this group's versions.

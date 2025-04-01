@@ -6,7 +6,7 @@ package generator_test
 import (
 	"testing"
 
-	"github.com/drae/templatedsecret-controller/pkg/generator"
+	"github.com/drae/templated-secret-controller/pkg/generator"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 )

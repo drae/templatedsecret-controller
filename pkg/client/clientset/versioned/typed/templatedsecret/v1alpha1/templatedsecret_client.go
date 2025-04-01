@@ -9,8 +9,8 @@ package v1alpha1
 import (
 	http "net/http"
 
-	templatedsecretv1alpha1 "github.com/drae/templatedsecret-controller/pkg/apis/templatedsecret/v1alpha1"
-	scheme "github.com/drae/templatedsecret-controller/pkg/client/clientset/versioned/scheme"
+	templatedsecretv1alpha1 "github.com/drae/templated-secret-controller/pkg/apis/templatedsecret/v1alpha1"
+	scheme "github.com/drae/templated-secret-controller/pkg/client/clientset/versioned/scheme"
 	rest "k8s.io/client-go/rest"
 )
 

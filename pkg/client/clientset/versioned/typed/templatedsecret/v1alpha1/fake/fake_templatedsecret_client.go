@@ -7,7 +7,7 @@
 package fake
 
 import (
-	v1alpha1 "github.com/drae/templatedsecret-controller/pkg/client/clientset/versioned/typed/templatedsecret/v1alpha1"
+	v1alpha1 "github.com/drae/templated-secret-controller/pkg/client/clientset/versioned/typed/templatedsecret/v1alpha1"
 	rest "k8s.io/client-go/rest"
 	testing "k8s.io/client-go/testing"
 )
