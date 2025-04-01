@@ -13,6 +13,7 @@ show_help() {
     echo "  run          Run controller locally (requires kubectl access to a cluster)"
     echo "  manifests    Generate CRD manifests"
     echo "  docker       Build Docker image locally"
+    echo "  docker-push  Build and push Docker image to registry"
     echo "  deploy-dev   Apply development configuration to connected Kubernetes cluster"
     echo "  help         Show this help message"
 }
@@ -47,6 +48,12 @@ cmd_docker() {
     make docker-build
 }
 
+# Build and push Docker image
+cmd_docker_push() {
+    echo "Building and pushing Docker image..."
+    make docker-push
+}
+
 # Deploy development configuration to cluster
 cmd_deploy_dev() {
     echo "Deploying development configuration to cluster..."
@@ -69,6 +76,9 @@ manifests)
     ;;
 docker)
     cmd_docker
+    ;;
+docker-push)
+    cmd_docker_push
     ;;
 deploy-dev)
     cmd_deploy_dev
