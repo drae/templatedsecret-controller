@@ -3,7 +3,6 @@ kind: Deployment
 metadata:
   name: templated-secret-controller
 spec:
-  replicas: 2
   selector:
     matchLabels:
       app: templated-secret-controller
