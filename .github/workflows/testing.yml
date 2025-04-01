@@ -79,18 +79,18 @@ jobs:
       - name: Deploy controller
         run: |
           # Create namespace if it doesn't exist
-          kubectl create namespace templated-secret-controller --dry-run=client -o yaml | kubectl apply -f -
+          kubectl create namespace templated-secret --dry-run=client -o yaml | kubectl apply -f -
 
           # Use kustomize to build the resources before applying
           kubectl kustomize config/kustomize/base | kubectl apply -f -
 
           # Update the deployed image to use the one we just built
-          kubectl set image -n templated-secret-controller deployment/templated-secret-controller controller=${IMG}:${TAG}
+          kubectl set image -n templated-secret deployment/templated-secret-controller controller=${IMG}:${TAG}
 
           # Wait for deployment to be ready
-          kubectl -n templated-secret-controller wait deployment/templated-secret-controller --for=condition=Available --timeout=60s
+          kubectl -n templated-secret wait deployment/templated-secret-controller --for=condition=Available --timeout=60s
 
       - name: Run tests
         run: |
           mkdir -p tmp
-          TEMPLATEDSECRET_E2E_NAMESPACE=templated-secret-test ./hack/test-e2e.sh
+          TEMPLATEDSECRET_E2E_NAMESPACE=templated-secret-dev ./hack/test-e2e.sh
