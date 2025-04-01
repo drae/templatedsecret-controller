@@ -6,6 +6,7 @@ package generator
 import (
 	"context"
 	"encoding/base64"
+	"encoding/json"
 	"fmt"
 	"regexp"
 	"strings"
@@ -21,11 +22,12 @@ import (
 	"k8s.io/apimachinery/pkg/apis/meta/v1/unstructured"
 	"k8s.io/apimachinery/pkg/runtime/schema"
 	"k8s.io/apimachinery/pkg/types"
-	"k8s.io/client-go/util/workqueue"
 
 	"sigs.k8s.io/controller-runtime/pkg/client"
 	"sigs.k8s.io/controller-runtime/pkg/controller"
 	"sigs.k8s.io/controller-runtime/pkg/controller/controllerutil"
+	"sigs.k8s.io/controller-runtime/pkg/handler"
+	"sigs.k8s.io/controller-runtime/pkg/manager"
 	"sigs.k8s.io/controller-runtime/pkg/reconcile"
 	"sigs.k8s.io/controller-runtime/pkg/source"
 )
@@ -48,34 +50,71 @@ type Tracker interface {
 
 // SecretTemplateReconciler watches for SecretTemplate Resources and generates a new secret from a set of input resources.
 type SecretTemplateReconciler struct {
+	mgr           manager.Manager
 	client        client.Client
 	saLoader      ClientLoader
 	secretTracker Tracker
 	log           logr.Logger
 }
 
-var _ reconcile.Reconciler = &SecretTemplateReconciler{}
+var (
+	// Ensure SecretTemplateReconciler implements reconcile.Reconciler
+	_ reconcile.Reconciler = &SecretTemplateReconciler{}
+)
 
 // NewSecretTemplateReconciler create a new SecretTemplate Reconciler
-func NewSecretTemplateReconciler(client client.Client, loader ClientLoader, secretTracker Tracker, log logr.Logger) *SecretTemplateReconciler {
-	return &SecretTemplateReconciler{client, loader, secretTracker, log}
+func NewSecretTemplateReconciler(mgr manager.Manager, client client.Client, loader ClientLoader, secretTracker Tracker, log logr.Logger) *SecretTemplateReconciler {
+	return &SecretTemplateReconciler{mgr, client, loader, secretTracker, log}
 }
 
 // AttachWatches adds and starts watches this reconciler requires.
-func (r *SecretTemplateReconciler) AttachWatches(controller controller.Controller) error {
-	// Use source.Func which is available in controller-runtime v0.20.4
-	// This creates a simple source that will watch SecretTemplates
-	err := controller.Watch(
-		source.Func(func(ctx context.Context, queue workqueue.TypedRateLimitingInterface[reconcile.Request]) error {
-			// No special setup needed, the controller will handle reconciliation
-			return nil
-		}),
+func (r *SecretTemplateReconciler) AttachWatches(c controller.Controller) error {
+	// Watch for changes to created Secrets
+	if err := c.Watch(
+		source.Kind(
+			r.mgr.GetCache(),
+			&corev1.Secret{},
+			handler.TypedEnqueueRequestForOwner[*corev1.Secret](r.mgr.GetScheme(), r.mgr.GetRESTMapper(), &tsv1alpha1.SecretTemplate{}, handler.OnlyControllerOwner()),
+		),
+	); err != nil {
+		return err
+	}
+
+	err := c.Watch(
+		source.Kind(
+			r.mgr.GetCache(),
+			&corev1.Secret{},
+			handler.TypedEnqueueRequestsFromMapFunc(func(ctx context.Context, a *corev1.Secret) []reconcile.Request {
+				var requests []reconcile.Request
+
+				secretKey := types.NamespacedName{
+					Namespace: a.GetNamespace(),
+					Name:      a.GetName(),
+				}
+
+				for _, tracking := range r.secretTracker.GetTracking(secretKey) {
+					requests = append(requests, reconcile.Request{NamespacedName: types.NamespacedName{
+						Name:      tracking.Name,
+						Namespace: tracking.Namespace,
+					}})
+				}
+
+				return requests
+			}),
+		),
 	)
+
 	if err != nil {
 		return err
 	}
 
-	return nil
+	return c.Watch(
+		source.Kind(
+			r.mgr.GetCache(),
+			&tsv1alpha1.SecretTemplate{},
+			&handler.TypedEnqueueRequestForObject[*tsv1alpha1.SecretTemplate]{},
+		),
+	)
 }
 
 // Reconcile is the entrypoint for incoming requests from k8s
@@ -117,6 +156,9 @@ func (r *SecretTemplateReconciler) reconcile(ctx context.Context, secretTemplate
 	if err != nil {
 		return reconcile.Result{}, err
 	}
+
+	// Debug print of inputResources structure
+	//	debugInputResources(inputResources)
 
 	evaluatedTemplateSecret, err := evaluateTemplate(secretTemplate.Spec.JSONPathTemplate, inputResources)
 	if err != nil {
@@ -238,13 +280,37 @@ func (r *SecretTemplateReconciler) resolveInputResources(ctx context.Context, se
 			return nil, fmt.Errorf("unable to resolve input resource %s: %w", inputResource.Name, err)
 		}
 
-		key := types.NamespacedName{Namespace: secretTemplate.Namespace, Name: unstructuredResource.GetName()}
+		key := types.NamespacedName{
+			Namespace: secretTemplate.Namespace,
+			Name:      unstructuredResource.GetName(),
+		}
 
 		if err := inputResourceclient.Get(ctx, key, &unstructuredResource); err != nil {
 			return nil, fmt.Errorf("cannot fetch input resource %s: %w", unstructuredResource.GetName(), err)
 		}
 
-		resolvedInputResources[inputResource.Name] = unstructuredResource.UnstructuredContent()
+		content := unstructuredResource.UnstructuredContent()
+
+		// If this is a Secret resource, decode base64 data fields immediately
+		if unstructuredResource.GetKind() == "Secret" && unstructuredResource.GetAPIVersion() == "v1" {
+			if data, exists := content["data"].(map[string]interface{}); exists {
+				decodedData := map[string]interface{}{}
+				for k, v := range data {
+					if strVal, ok := v.(string); ok {
+						decoded, err := base64.StdEncoding.DecodeString(strVal)
+						if err != nil {
+							return nil, fmt.Errorf("failed decoding base64 from Secret %s, data field %s: %w",
+								unstructuredResource.GetName(), k, err)
+						}
+						decodedData[k] = string(decoded)
+					}
+				}
+				// Replace the base64 encoded data with decoded values
+				content["decodedData"] = decodedData
+			}
+		}
+
+		resolvedInputResources[inputResource.Name] = content
 		resolvedInputResourceKeys = append(resolvedInputResourceKeys, key)
 	}
 
@@ -301,7 +367,7 @@ func evaluateTemplate(template *tsv1alpha1.JSONPathTemplate, values map[string]i
 	}
 
 	// Template Secret StringData
-	stringData, err := evaluateStringData(template.StringData, values)
+	stringData, err := evaluate(template.StringData, values)
 	if err != nil {
 		return corev1.Secret{}, fmt.Errorf("templating stringData: %w", err)
 	}
@@ -343,6 +409,18 @@ func evaluate(mapping map[string]string, values map[string]interface{}) (map[str
 			return nil, err
 		}
 
+		exprStr := expression
+		if strings.Contains(exprStr, ".data.") {
+			// For paths like $(.resourceName.data.key), try using the already decoded data first
+			decodedExpr := strings.Replace(exprStr, ".data.", ".decodedData.", 1)
+			decodedValueBuffer, decodedErr := JSONPath(decodedExpr).EvaluateWith(values)
+			if decodedErr == nil {
+				// Successfully found data in decodedData, use it directly
+				evaluatedMapping[key] = decodedValueBuffer.String()
+				continue
+			}
+		}
+
 		evaluatedMapping[key] = valueBuffer.String()
 	}
 
@@ -357,6 +435,22 @@ func evaluateBytes(mapping map[string]string, values map[string]interface{}) (ma
 			return nil, err
 		}
 
+		// Check if the expression refers to a path that might include decodedData
+		// If it references a path that looks like .resourceName.data.field, try to convert it to use
+		// decodedData instead to avoid decoding again
+		exprStr := expression
+		if strings.Contains(exprStr, ".data.") {
+			// For paths like $(.resourceName.data.key), try using the already decoded data first
+			decodedExpr := strings.Replace(exprStr, ".data.", ".decodedData.", 1)
+			decodedValueBuffer, decodedErr := JSONPath(decodedExpr).EvaluateWith(values)
+			if decodedErr == nil {
+				// Successfully found data in decodedData, use it directly
+				evaluatedMapping[key] = decodedValueBuffer.Bytes()
+				continue
+			}
+		}
+
+		// Fall back to the original behavior if decodedData approach doesn't work
 		decoded, err := base64.StdEncoding.DecodeString(valueBuffer.String())
 		if err != nil {
 			return nil, fmt.Errorf("failed decoding base64 from a Secret: %w", err)
@@ -368,91 +462,19 @@ func evaluateBytes(mapping map[string]string, values map[string]interface{}) (ma
 	return evaluatedMapping, nil
 }
 
-// Evaluate string data with improved detection of Secret data references
-func evaluateStringData(mapping map[string]string, values map[string]interface{}) (map[string]string, error) {
-	evaluatedMapping := map[string]string{}
-
-	// Pre-compile the regex for better performance when processing multiple keys
-	secretRefRegex := buildSecretDataRefRegex(values)
-
-	for key, expression := range mapping {
-		valueBuffer, err := JSONPath(expression).EvaluateWith(values)
-		if err != nil {
-			return nil, err
-		}
-
-		strValue := valueBuffer.String()
-
-		// Try to decode if it's referencing a Secret's data field and looks like base64
-		if secretRefRegex.MatchString(expression) && isLikelyBase64(strValue) {
-			decoded, err := base64.StdEncoding.DecodeString(strValue)
-			if err == nil {
-				evaluatedMapping[key] = string(decoded)
-				continue
-			}
-		}
-
-		evaluatedMapping[key] = strValue
-	}
-	return evaluatedMapping, nil
-}
-
-// buildSecretDataRefRegex builds a regex to match expressions that reference Secret data fields
-func buildSecretDataRefRegex(values map[string]interface{}) *regexp.Regexp {
-	// Identify all Secret resources in the input values
-	secretNames := []string{}
-	for name, resource := range values {
-		if resourceMap, ok := resource.(map[string]interface{}); ok {
-			if kind, found := resourceMap["kind"]; found && kind == "Secret" {
-				// Escape the secret name for use in regex
-				escapedName := strings.ReplaceAll(name, ".", "\\.")
-				secretNames = append(secretNames, escapedName)
-			}
-		}
+func debugInputResources(inputResources map[string]interface{}) {
+	// Print the inputResources map structure for debugging
+	jsonData, err := json.MarshalIndent(inputResources, "", "  ")
+	if err != nil {
+		fmt.Println("Error marshalling inputResources:", err)
+		return
 	}
 
-	// If no secrets, create a regex that won't match anything
-	if len(secretNames) == 0 {
-		return regexp.MustCompile("^$")
-	}
+	// Remove sensitive data from the output
+	re := regexp.MustCompile(`"data":\s*{[^}]*}`)
+	sanitizedJsonData := re.ReplaceAllString(string(jsonData), `"data": { ... }`)
 
-	// Create a regex that matches any of the secret names followed by .data. pattern
-	pattern := fmt.Sprintf("\\b(%s)\\.data\\.", strings.Join(secretNames, "|"))
-	return regexp.MustCompile(pattern)
-}
-
-// Helper function to check if a string is likely base64 encoded
-func isLikelyBase64(s string) bool {
-	// Empty strings or strings with length not divisible by 4 cannot be valid base64
-	if len(s) == 0 || len(s)%4 != 0 {
-		return false
-	}
-
-	// Extremely short strings are unlikely to be meaningful base64 encoded values
-	// This helps prevent false positives for short strings that happen to be valid base64
-	if len(s) < 8 {
-		return false
-	}
-
-	// Count padding characters - valid base64 has at most 2
-	paddingCount := 0
-	for i := len(s) - 1; i >= 0 && s[i] == '='; i-- {
-		paddingCount++
-	}
-	if paddingCount > 2 {
-		return false
-	}
-
-	// Check for valid base64 characters
-	for i := 0; i < len(s)-paddingCount; i++ {
-		c := s[i]
-		if !((c >= 'A' && c <= 'Z') || (c >= 'a' && c <= 'z') ||
-			(c >= '0' && c <= '9') || c == '+' || c == '/') {
-			return false
-		}
-	}
-
-	// Try to decode it as a final check
-	_, err := base64.StdEncoding.DecodeString(s)
-	return err == nil
+	// Print the sanitized JSON data
+	fmt.Println("Input Resources:")
+	fmt.Println(strings.TrimSpace(sanitizedJsonData))
 }

@@ -91,7 +91,7 @@ func main() {
 
 	// Set SecretTemplate's maximum exponential to reduce reconcile time for inputresource errors
 	rateLimiter := workqueue.NewItemExponentialFailureRateLimiter(100*time.Millisecond, 120*time.Second)
-	secretTemplateReconciler := generator.NewSecretTemplateReconciler(mgr.GetClient(), saLoader, tracker.NewTracker(), log.WithName("template"))
+	secretTemplateReconciler := generator.NewSecretTemplateReconciler(mgr, mgr.GetClient(), saLoader, tracker.NewTracker(), log.WithName("template"))
 	exitIfErr(entryLog, "registering", registerCtrlWithRateLimiter("template", mgr, secretTemplateReconciler, rateLimiter))
 
 	entryLog.Info("starting manager")
