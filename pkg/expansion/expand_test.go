@@ -6,7 +6,7 @@ package expansion_test
 import (
 	"testing"
 
-	"github.com/drae/templatedsecret-controller/pkg/expansion"
+	"github.com/drae/templated-secret-controller/pkg/expansion"
 )
 
 func TestMapReference(t *testing.T) {

@@ -11,9 +11,9 @@ import (
 	sync "sync"
 	time "time"
 
-	versioned "github.com/drae/templatedsecret-controller/pkg/client/clientset/versioned"
-	internalinterfaces "github.com/drae/templatedsecret-controller/pkg/client/informers/externalversions/internalinterfaces"
-	templatedsecret "github.com/drae/templatedsecret-controller/pkg/client/informers/externalversions/templatedsecret"
+	versioned "github.com/drae/templated-secret-controller/pkg/client/clientset/versioned"
+	internalinterfaces "github.com/drae/templated-secret-controller/pkg/client/informers/externalversions/internalinterfaces"
+	templatedsecret "github.com/drae/templated-secret-controller/pkg/client/informers/externalversions/templatedsecret"
 	v1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	runtime "k8s.io/apimachinery/pkg/runtime"
 	schema "k8s.io/apimachinery/pkg/runtime/schema"

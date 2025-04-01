@@ -23,7 +23,7 @@ jobs:
       - name: Set up Go
         uses: actions/setup-go@v5
         with:
-          go-version: "1.24"
+          go-version: "1.24.1"
 
       - name: Run unit tests
         run: ./hack/test.sh
@@ -52,7 +52,7 @@ jobs:
       - name: Set up Go
         uses: actions/setup-go@v5
         with:
-          go-version: "1.24"
+          go-version: "1.24.1"
 
       - name: Set up QEMU
         uses: docker/setup-qemu-action@v3
@@ -120,7 +120,7 @@ jobs:
         run: |
           TAG=${GITHUB_REF#refs/tags/}
           mkdir -p dist
-          kustomize build config/kustomize/overlays/prod > dist/templatedsecret-controller-${TAG}.yaml
+          kustomize build config/kustomize/overlays/prod > dist/templated-secret-controller-${TAG}.yaml
 
       - name: Generate release notes
         id: generate-release-notes
@@ -144,14 +144,14 @@ jobs:
           echo "" >> release-notes.md
           echo "Install the controller with:" >> release-notes.md
           echo '```shell' >> release-notes.md
-          echo "kubectl apply -f https://github.com/${{ github.repository }}/releases/download/${GITHUB_REF#refs/tags/}/templatedsecret-controller-${GITHUB_REF#refs/tags/}.yaml" >> release-notes.md
+          echo "kubectl apply -f https://github.com/${{ github.repository }}/releases/download/${GITHUB_REF#refs/tags/}/templated-secret-controller-${GITHUB_REF#refs/tags/}.yaml" >> release-notes.md
           echo '```' >> release-notes.md
 
       - name: Create GitHub Release
         uses: softprops/action-gh-release@v2
         with:
           files: |
-            dist/templatedsecret-controller-*.yaml
+            dist/templated-secret-controller-*.yaml
           body_path: release-notes.md
           draft: false
           prerelease: ${{ contains(github.ref, '-alpha') || contains(github.ref, '-beta') || contains(github.ref, '-rc') }}

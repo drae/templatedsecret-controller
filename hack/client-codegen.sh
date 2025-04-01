@@ -3,7 +3,7 @@
 set -e -x -u
 
 # Get the correct Go module paths
-MODULE_PATH="github.com/drae/templatedsecret-controller"
+MODULE_PATH="github.com/drae/templated-secret-controller"
 API_PACKAGE="${MODULE_PATH}/pkg/apis/templatedsecret/v1alpha1"
 HEADER_FILE="./code-header-template.txt"
 

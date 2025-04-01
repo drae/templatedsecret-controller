@@ -15,7 +15,7 @@ import (
 	"sync"
 	"time"
 
-	"github.com/drae/templatedsecret-controller/pkg/generator"
+	"github.com/drae/templated-secret-controller/pkg/generator"
 	"github.com/go-logr/logr"
 	authenticationv1 "k8s.io/api/authentication/v1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"

@@ -11,9 +11,9 @@ namespace: templated-secret
 
 labels:
   - pairs:
-      app: templatedsecret-controller
+      app: templated-secret-controller
 
 images:
   - name: controller
-    newName: ghcr.io/drae/templatedsecret-controller
+    newName: ghcr.io/drae/templated-secret-controller
     newTag: latest

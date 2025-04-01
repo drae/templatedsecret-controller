@@ -5,7 +5,7 @@ set -e
 # Function to display help message
 show_help() {
     echo "Usage: dev.sh [OPTION]"
-    echo "Local development helper for templatedsecret-controller."
+    echo "Local development helper for templated-secret-controller."
     echo ""
     echo "Options:"
     echo "  build        Build the controller binary"
@@ -20,7 +20,7 @@ show_help() {
 
 # Build the controller binary
 cmd_build() {
-    echo "Building templatedsecret-controller..."
+    echo "Building templated-secret-controller..."
     make build
 }
 

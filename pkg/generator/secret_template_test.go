@@ -9,9 +9,9 @@ import (
 	"testing"
 	"time"
 
-	tsv1alpha1 "github.com/drae/templatedsecret-controller/pkg/apis/templatedsecret/v1alpha1"
-	"github.com/drae/templatedsecret-controller/pkg/client/clientset/versioned/scheme"
-	"github.com/drae/templatedsecret-controller/pkg/tracker"
+	tsv1alpha1 "github.com/drae/templated-secret-controller/pkg/apis/templatedsecret/v1alpha1"
+	"github.com/drae/templated-secret-controller/pkg/client/clientset/versioned/scheme"
+	"github.com/drae/templated-secret-controller/pkg/tracker"
 	"github.com/go-logr/logr"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
@@ -33,7 +33,7 @@ import (
 	"sigs.k8s.io/controller-runtime/pkg/reconcile"
 	"sigs.k8s.io/controller-runtime/pkg/webhook"
 
-	"github.com/drae/templatedsecret-controller/pkg/generator"
+	"github.com/drae/templated-secret-controller/pkg/generator"
 )
 
 func Test_SecretTemplate(t *testing.T) {

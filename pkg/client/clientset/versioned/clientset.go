@@ -10,7 +10,7 @@ import (
 	fmt "fmt"
 	http "net/http"
 
-	templatedsecretv1alpha1 "github.com/drae/templatedsecret-controller/pkg/client/clientset/versioned/typed/templatedsecret/v1alpha1"
+	templatedsecretv1alpha1 "github.com/drae/templated-secret-controller/pkg/client/clientset/versioned/typed/templatedsecret/v1alpha1"
 	discovery "k8s.io/client-go/discovery"
 	rest "k8s.io/client-go/rest"
 	flowcontrol "k8s.io/client-go/util/flowcontrol"

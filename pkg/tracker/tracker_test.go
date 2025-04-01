@@ -6,7 +6,7 @@ package tracker_test
 import (
 	"testing"
 
-	"github.com/drae/templatedsecret-controller/pkg/tracker"
+	"github.com/drae/templated-secret-controller/pkg/tracker"
 	"github.com/stretchr/testify/assert"
 	"k8s.io/apimachinery/pkg/types"
 )

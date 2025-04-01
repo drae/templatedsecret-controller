@@ -4,8 +4,8 @@
 package reconciler
 
 import (
-	tsv1alpha1 "github.com/drae/templatedsecret-controller/pkg/apis/templatedsecret/v1alpha1"
-	"github.com/drae/templatedsecret-controller/pkg/expansion"
+	tsv1alpha1 "github.com/drae/templated-secret-controller/pkg/apis/templatedsecret/v1alpha1"
+	"github.com/drae/templated-secret-controller/pkg/expansion"
 	corev1 "k8s.io/api/core/v1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/client-go/kubernetes/scheme"

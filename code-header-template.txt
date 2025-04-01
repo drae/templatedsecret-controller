@@ -1,3 +1,5 @@
-// Based on work by Carvel - that work Copyright 2024 The Carvel Authors.
-// Re-organized by starstreak.dev - that work Copyright 2025 starstreak.dev
+//
+// Original source - secretgen-controller - Copyright 2024 The Carvel Authors.
+// Re-organized and updated as - templated-secret-controller - (C) 2025 starstreak.dev
+//
 // SPDX-License-Identifier: Apache-2.0

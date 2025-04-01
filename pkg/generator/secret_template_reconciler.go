@@ -12,9 +12,9 @@ import (
 	"strings"
 	"time"
 
-	tsv1alpha1 "github.com/drae/templatedsecret-controller/pkg/apis/templatedsecret/v1alpha1"
-	"github.com/drae/templatedsecret-controller/pkg/client/clientset/versioned/scheme"
-	"github.com/drae/templatedsecret-controller/pkg/reconciler"
+	tsv1alpha1 "github.com/drae/templated-secret-controller/pkg/apis/templatedsecret/v1alpha1"
+	"github.com/drae/templated-secret-controller/pkg/client/clientset/versioned/scheme"
+	"github.com/drae/templated-secret-controller/pkg/reconciler"
 	"github.com/go-logr/logr"
 	corev1 "k8s.io/api/core/v1"
 	"k8s.io/apimachinery/pkg/api/errors"

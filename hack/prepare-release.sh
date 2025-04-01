@@ -11,7 +11,7 @@ fi
 VERSION="$1"
 VERSION_NO_V="${VERSION#v}"
 
-echo "===== Preparing release for templatedsecret-controller $VERSION ====="
+echo "===== Preparing release for templated-secret-controller $VERSION ====="
 
 # Check that we're on a clean working directory
 if [[ -n "$(git status --porcelain)" ]]; then
@@ -33,13 +33,13 @@ echo "==> Generating Kubernetes manifests..."
 mkdir -p dist
 
 # Build the manifests using kustomize
-kustomize build config/kustomize/base >dist/templatedsecret-controller-base.yaml
+kustomize build config/kustomize/base >dist/templated-secret-controller-base.yaml
 
 # Update the prod overlay with the new version and build it
 cd config/kustomize/overlays/prod
-kustomize edit set image controller=ghcr.io/drae/templatedsecret-controller:$VERSION
+kustomize edit set image controller=ghcr.io/drae/templated-secret-controller:$VERSION
 cd ../../../..
-kustomize build config/kustomize/overlays/prod >dist/templatedsecret-controller-$VERSION.yaml
+kustomize build config/kustomize/overlays/prod >dist/templated-secret-controller-$VERSION.yaml
 
 echo "==> Generating release notes draft..."
 PREV_TAG=$(git describe --tags --abbrev=0 2>/dev/null || echo "")
@@ -60,7 +60,7 @@ echo "## Installation" >>dist/release-notes.md
 echo "" >>dist/release-notes.md
 echo "Install the controller with:" >>dist/release-notes.md
 echo '```shell' >>dist/release-notes.md
-echo "kubectl apply -f https://github.com/drae/templatedsecret-controller/releases/download/$VERSION/templatedsecret-controller-$VERSION.yaml" >>dist/release-notes.md
+echo "kubectl apply -f https://github.com/drae/templated-secret-controller/releases/download/$VERSION/templated-secret-controller-$VERSION.yaml" >>dist/release-notes.md
 echo '```' >>dist/release-notes.md
 
 echo "==> Done!"

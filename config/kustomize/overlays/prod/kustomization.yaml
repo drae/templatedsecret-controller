@@ -8,7 +8,7 @@ namespace: templated-secret
 
 images:
   - name: controller
-    newName: ghcr.io/drae/templatedsecret-controller
+    newName: ghcr.io/drae/templated-secret-controller
     newTag: stable
 
 patchesStrategicMerge:
