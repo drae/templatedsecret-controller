@@ -70,7 +70,7 @@ jobs:
       - name: Load image to Kind
         run: |
           kind load docker-image --name kinder ${IMG}:${TAG}
-          
+
           # Verify the image is fully loaded and available in the Kind cluster
           echo "Verifying image availability in Kind cluster..."
           for i in {1..30}; do
@@ -96,40 +96,40 @@ jobs:
       - name: Deploy controller
         run: |
           # Create namespace if it doesn't exist
-          kubectl create namespace templated-secret --dry-run=client -o yaml | kubectl apply -f -
+          kubectl create namespace templated-secret-dev --dry-run=client -o yaml | kubectl apply -f -
 
           # Use kustomize to build the resources before applying
           kubectl kustomize config/kustomize/base | kubectl apply -f -
 
           # Update the deployed image to use the one we just built
-          kubectl set image -n templated-secret deployment/templated-secret-controller controller=${IMG}:${TAG}
+          kubectl set image -n templated-secret-dev deployment/templated-secret-controller controller=${IMG}:${TAG}
 
           echo "=== Initial pod status after deployment ==="
-          kubectl -n templated-secret get pods
+          kubectl -n templated-secret-dev get pods
 
           # Start a background process that collects pod logs, runs even if the wait command fails
           (
             sleep 20
             echo "=== Pod status after 20 seconds ==="
-            kubectl -n templated-secret get pods
+            kubectl -n templated-secret-dev get pods
             
-            POD_NAME=$(kubectl -n templated-secret get pods -l app=templated-secret-controller -o jsonpath='{.items[0].metadata.name}' 2>/dev/null || echo "")
+            POD_NAME=$(kubectl -n templated-secret-dev get pods -l app=templated-secret-controller -o jsonpath='{.items[0].metadata.name}' 2>/dev/null || echo "")
             if [ -n "$POD_NAME" ]; then
               echo "=== Pod details ==="
-              kubectl -n templated-secret describe pod $POD_NAME
+              kubectl -n templated-secret-dev describe pod $POD_NAME
               
               echo "=== Pod logs ==="
-              kubectl -n templated-secret logs $POD_NAME --all-containers || true
+              kubectl -n templated-secret-dev logs $POD_NAME --all-containers || true
             else
               echo "No pods found with label app=templated-secret-controller"
               echo "=== All pods in namespace ==="
-              kubectl -n templated-secret get pods
+              kubectl -n templated-secret-dev get pods
             fi
           ) &
           DEBUG_PID=$!
 
           # Attempt to wait for the deployment (this might time out)
-          kubectl -n templated-secret wait deployment/templated-secret-controller --for=condition=Available --timeout=30s || {
+          kubectl -n templated-secret-dev wait deployment/templated-secret-controller --for=condition=Available --timeout=30s || {
             echo "Deployment timed out, checking deployment details"
             kubectl -n templated-secret describe deployment/templated-secret-controller
             
@@ -150,4 +150,4 @@ jobs:
       - name: Run tests
         run: |
           mkdir -p tmp
-          TEMPLATEDSECRET_E2E_NAMESPACE=templated-secret ./hack/test-e2e.sh
+          TEMPLATEDSECRET_E2E_NAMESPACE=templated-secret-dev ./hack/test-e2e.sh

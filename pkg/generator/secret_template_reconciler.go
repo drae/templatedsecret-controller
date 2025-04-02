@@ -6,9 +6,7 @@ package generator
 import (
 	"context"
 	"encoding/base64"
-	"encoding/json"
 	"fmt"
-	"regexp"
 	"strings"
 	"time"
 
@@ -22,6 +20,7 @@ import (
 	"k8s.io/apimachinery/pkg/apis/meta/v1/unstructured"
 	"k8s.io/apimachinery/pkg/runtime/schema"
 	"k8s.io/apimachinery/pkg/types"
+	"k8s.io/client-go/util/retry"
 
 	"sigs.k8s.io/controller-runtime/pkg/client"
 	"sigs.k8s.io/controller-runtime/pkg/controller"
@@ -139,6 +138,12 @@ func (r *SecretTemplateReconciler) Reconcile(ctx context.Context, request reconc
 		return reconcile.Result{}, nil
 	}
 
+	// Initialize status fields if they're nil
+	if secretTemplate.Status.Secret.Name == "" {
+		log.Info("Initializing Status.Secret.Name field")
+		secretTemplate.Status.Secret.Name = ""
+	}
+
 	status := &reconciler.Status{
 		S:          secretTemplate.Status.GenericStatus,
 		UpdateFunc: func(st tsv1alpha1.GenericStatus) { secretTemplate.Status.GenericStatus = st },
@@ -208,26 +213,41 @@ func (r *SecretTemplateReconciler) reconcile(ctx context.Context, secretTemplate
 }
 
 func (r *SecretTemplateReconciler) updateStatus(ctx context.Context, secretTemplate *tsv1alpha1.SecretTemplate) error {
-	existingSecretTemplate := tsv1alpha1.SecretTemplate{}
-	if err := r.client.Get(ctx, types.NamespacedName{Namespace: secretTemplate.Namespace, Name: secretTemplate.Name}, &existingSecretTemplate); err != nil {
-		if errors.IsNotFound(err) {
-			// The SecretTemplate was deleted after reconciliation started - this is not an error
-			return nil
-		}
-		return fmt.Errorf("fetching secretTemplate: %w", err)
-	}
+	// Create a deep copy to avoid updating the original object
+	statusUpdate := secretTemplate.DeepCopy()
 
-	existingSecretTemplate.Status = secretTemplate.Status
+	// Log what we're trying to update
+	r.log.Info("Attempting to update status with values",
+		"secretTemplate", statusUpdate.Name,
+		"conditions", statusUpdate.Status.Conditions,
+		"secretName", statusUpdate.Status.Secret.Name)
 
-	if err := r.client.Status().Update(ctx, &existingSecretTemplate); err != nil {
-		if errors.IsConflict(err) {
-			// Resource version changed - this will be handled on the next reconcile loop
-			r.log.Info("Conflict detected when updating status, will retry on next reconcile",
-				"secretTemplate", secretTemplate.Name)
-			return nil
+	// Try to update using just the status field with retries
+	err := retry.RetryOnConflict(retry.DefaultRetry, func() error {
+		// Get the latest version first
+		latest := &tsv1alpha1.SecretTemplate{}
+		if err := r.client.Get(ctx, types.NamespacedName{Namespace: statusUpdate.Namespace, Name: statusUpdate.Name}, latest); err != nil {
+			return err
 		}
+
+		// Copy our status updates to the latest version
+		latest.Status.GenericStatus = statusUpdate.Status.GenericStatus
+		latest.Status.Secret = statusUpdate.Status.Secret
+
+		// Update status subresource
+		return r.client.Status().Update(ctx, latest)
+	})
+
+	if err != nil {
+		r.log.Error(err, "Failed to update SecretTemplate status",
+			"secretTemplate", statusUpdate.Name)
 		return fmt.Errorf("updating secretTemplate status: %w", err)
 	}
+
+	r.log.Info("Status updated successfully",
+		"secretTemplate", statusUpdate.Name,
+		"conditions", statusUpdate.Status.Conditions,
+		"secretName", statusUpdate.Status.Secret.Name)
 
 	return nil
 }
@@ -460,21 +480,4 @@ func evaluateBytes(mapping map[string]string, values map[string]interface{}) (ma
 	}
 
 	return evaluatedMapping, nil
-}
-
-func debugInputResources(inputResources map[string]interface{}) {
-	// Print the inputResources map structure for debugging
-	jsonData, err := json.MarshalIndent(inputResources, "", "  ")
-	if err != nil {
-		fmt.Println("Error marshalling inputResources:", err)
-		return
-	}
-
-	// Remove sensitive data from the output
-	re := regexp.MustCompile(`"data":\s*{[^}]*}`)
-	sanitizedJsonData := re.ReplaceAllString(string(jsonData), `"data": { ... }`)
-
-	// Print the sanitized JSON data
-	fmt.Println("Input Resources:")
-	fmt.Println(strings.TrimSpace(sanitizedJsonData))
 }

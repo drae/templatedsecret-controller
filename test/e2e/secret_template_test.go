@@ -4,8 +4,6 @@
 package e2e
 
 import (
-	"fmt"
-	"strings"
 	"testing"
 
 	tsv1alpha1 "github.com/drae/templated-secret-controller/pkg/apis/templatedsecret/v1alpha1"
@@ -13,12 +11,12 @@ import (
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 	corev1 "k8s.io/api/core/v1"
+	"time"
 )
 
 func TestSecretTemplate_Full_Lifecycle(t *testing.T) {
 	env := BuildEnv(t)
 	logger := Logger{}
-	kapp := Kapp{t, env.Namespace, logger}
 	kubectl := Kubectl{t, env.Namespace, logger}
 
 	testSecretTemplateYaml := `
@@ -69,18 +67,16 @@ stringData:
   key4: val4
 `
 
-	name := "test-secrettemplate-full-lifecycle"
 	cleanUp := func() {
-		kapp.RunWithOpts([]string{"delete", "-a", name + "-template"}, RunOpts{AllowError: true})
-		kapp.RunWithOpts([]string{"delete", "-a", name + "-inputs"}, RunOpts{AllowError: true})
+		kubectl.DeleteYaml(testSecretTemplateYaml, RunOpts{AllowError: true})
+		kubectl.DeleteYaml(testInputResourcesYaml, RunOpts{AllowError: true})
 	}
 
 	cleanUp()
 	defer cleanUp()
 
 	logger.Section("Create Template", func() {
-		kapp.RunWithOpts([]string{"deploy", "-f", "-", "-a", name + "-template"},
-			RunOpts{StdinReader: strings.NewReader(testSecretTemplateYaml)})
+		kubectl.ApplyYaml(testSecretTemplateYaml, RunOpts{})
 	})
 
 	logger.Section("Check secret wasn't created and template has ReconcileFailed", func() {
@@ -99,8 +95,7 @@ stringData:
 	})
 
 	logger.Section("Create Input Resources", func() {
-		kapp.RunWithOpts([]string{"deploy", "-f", "-", "-a", name + "-inputs"},
-			RunOpts{StdinReader: strings.NewReader(testInputResourcesYaml)})
+		kubectl.ApplyYaml(testInputResourcesYaml, RunOpts{})
 	})
 
 	logger.Section("Check secret was created and template has ReconcileSucceeded", func() {
@@ -117,7 +112,7 @@ stringData:
 	})
 
 	logger.Section("Delete Input Resources", func() {
-		kapp.RunWithOpts([]string{"delete", "-a", name + "-inputs"}, RunOpts{AllowError: true})
+		kubectl.DeleteYaml(testInputResourcesYaml, RunOpts{AllowError: true})
 	})
 
 	logger.Section("Check template has ReconcileFailed but secret remains", func() {
@@ -140,7 +135,6 @@ stringData:
 func TestSecretTemplate_With_Service_Account(t *testing.T) {
 	env := BuildEnv(t)
 	logger := Logger{}
-	kapp := Kapp{t, env.Namespace, logger}
 	kubectl := Kubectl{t, env.Namespace, logger}
 
 	testYaml := `
@@ -220,17 +214,15 @@ spec:
       key4: "$(.configmap1.data.key4)"
 `
 
-	name := "test-secrettemplate-service-account-successful"
 	cleanUp := func() {
-		kapp.RunWithOpts([]string{"delete", "-a", name}, RunOpts{AllowError: true})
+		kubectl.DeleteYaml(testYaml, RunOpts{AllowError: true})
 	}
 
 	cleanUp()
 	defer cleanUp()
 
 	logger.Section("Deploy", func() {
-		kapp.RunWithOpts([]string{"deploy", "-f", "-", "-a", name},
-			RunOpts{StdinReader: strings.NewReader(testYaml)})
+		kubectl.ApplyYaml(testYaml, RunOpts{})
 	})
 
 	logger.Section("Check secret was created", func() {
@@ -267,7 +259,6 @@ spec:
 func TestSecretTemplate_With_Service_Account_With_Insufficient_Permissions(t *testing.T) {
 	env := BuildEnv(t)
 	logger := Logger{}
-	kapp := Kapp{t, env.Namespace, logger}
 	kubectl := Kubectl{t, env.Namespace, logger}
 
 	testYaml := `
@@ -320,17 +311,15 @@ spec:
       key4: "$(.configmap1.data.key4)"
 `
 
-	name := "test-secrettemplate-service-account-failure"
 	cleanUp := func() {
-		kapp.RunWithOpts([]string{"delete", "-a", name}, RunOpts{AllowError: true})
+		kubectl.DeleteYaml(testYaml, RunOpts{AllowError: true})
 	}
 
 	cleanUp()
 	defer cleanUp()
 
 	logger.Section("Deploy", func() {
-		kapp.RunWithOpts([]string{"deploy", "-f", "-", "-a", name},
-			RunOpts{StdinReader: strings.NewReader(testYaml)})
+		kubectl.ApplyYaml(testYaml, RunOpts{})
 	})
 
 	logger.Section("Check status is failing", func() {
@@ -350,16 +339,42 @@ spec:
 }
 
 func waitForSecretTemplate(t *testing.T, kubectl Kubectl, name string, condition tsv1alpha1.Condition) string {
-	waitArgs := []string{"wait", fmt.Sprintf("--for=condition=%s=%s", condition.Type, condition.Status), "secrettemplate", name}
-	getArgs := []string{"get", "secrettemplate", name, "-o", "yaml"}
+	var lastOutput string
+	var secretTemplate tsv1alpha1.SecretTemplate
 
-	kubectl.RunWithOpts(waitArgs, RunOpts{AllowError: true})
+	// Poll with longer timeout
+	for i := 0; i < 60; i++ { // Try for 60 seconds (longer than current)
+		getArgs := []string{"get", "secrettemplate", name, "-o", "yaml"}
+		out, err := kubectl.RunWithOpts(getArgs, RunOpts{AllowError: true})
+		if err != nil {
+			time.Sleep(time.Second)
+			continue
+		}
 
-	out, err := kubectl.RunWithOpts(getArgs, RunOpts{AllowError: true})
-	if err == nil {
-		return out
+		lastOutput = out
+		if err := yaml.Unmarshal([]byte(out), &secretTemplate); err != nil {
+			t.Logf("Failed to unmarshal SecretTemplate: %v", err)
+			time.Sleep(time.Second)
+			continue
+		}
+
+		// Check that both the condition and the status.secret.name are set
+		conditionFound := false
+		for _, c := range secretTemplate.Status.Conditions {
+			if c.Type == condition.Type && c.Status == condition.Status {
+				conditionFound = true
+				break
+			}
+		}
+
+		if conditionFound && (secretTemplate.Status.Secret.Name != "" || condition.Type == "ReconcileFailed") {
+			return out
+		}
+
+		time.Sleep(time.Second)
 	}
 
-	require.NoError(t, err, "Expected to find secrettemplate '%s' but did not: %s", name)
-	panic("Unreachable")
+	t.Fatalf("Timed out waiting for SecretTemplate %s to have condition %s=%s",
+		name, condition.Type, condition.Status)
+	return lastOutput
 }
