@@ -11,6 +11,6 @@ images:
     newName: ghcr.io/drae/templated-secret-controller
     newTag: develop
 
-patchesStrategicMerge:
-  - patches/deployment.yaml
-  - patches/rbac.yaml
+patches:
+  - path: patches/deployment.yaml
+  - path: patches/rbac.yaml

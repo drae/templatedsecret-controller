@@ -11,5 +11,5 @@ images:
     newName: ghcr.io/drae/templated-secret-controller
     newTag: stable
 
-patchesStrategicMerge:
-  - patches/deployment.yaml
+patches:
+  - path: patches/deployment.yaml
