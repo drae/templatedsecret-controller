@@ -15,7 +15,7 @@ type Env struct {
 
 func BuildEnv(t *testing.T) Env {
 	env := Env{
-		Namespace: os.Getenv("TEMPLATEDSECRET_E2E_NAMESPACE"),
+		Namespace: os.Getenv("NAMESPACE"),
 	}
 	env.Validate(t)
 	return env
