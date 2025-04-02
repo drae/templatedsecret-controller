@@ -6,6 +6,7 @@ package e2e
 import (
 	"bytes"
 	"fmt"
+	"io"
 	"os"
 	"os/exec"
 	"strings"
@@ -16,6 +17,19 @@ type Kubectl struct {
 	t         *testing.T
 	namespace string
 	l         Logger
+}
+
+// These options mirror what was previously in kapp.go
+type RunOpts struct {
+	NoNamespace  bool
+	IntoNs       bool
+	AllowError   bool
+	StderrWriter io.Writer
+	StdoutWriter io.Writer
+	StdinReader  io.Reader
+	CancelCh     chan struct{}
+	Redact       bool
+	Interactive  bool
 }
 
 func (k Kubectl) Run(args []string) string {
@@ -38,10 +52,8 @@ func (k Kubectl) RunWithOpts(args []string, opts RunOpts) (string, error) {
 
 	if opts.CancelCh != nil {
 		go func() {
-			select {
-			case <-opts.CancelCh:
-				cmd.Process.Signal(os.Interrupt)
-			}
+			<-opts.CancelCh
+			cmd.Process.Signal(os.Interrupt)
 		}()
 	}
 
@@ -55,7 +67,7 @@ func (k Kubectl) RunWithOpts(args []string, opts RunOpts) (string, error) {
 
 	err := cmd.Run()
 	if err != nil {
-		err = fmt.Errorf("Execution error: stderr: '%s' error: '%s'", stderr.String(), err)
+		err = fmt.Errorf("execution error: stderr: '%s' error: '%s'", stderr.String(), err)
 
 		if !opts.AllowError {
 			k.t.Fatalf("Failed to successfully execute '%s': %v", k.cmdDesc(args), err)
@@ -67,4 +79,27 @@ func (k Kubectl) RunWithOpts(args []string, opts RunOpts) (string, error) {
 
 func (k Kubectl) cmdDesc(args []string) string {
 	return fmt.Sprintf("kubectl %s", strings.Join(args, " "))
+}
+
+// Helper methods that replace kapp functionality
+
+// ApplyYaml applies YAML resources via kubectl apply
+func (k Kubectl) ApplyYaml(yaml string, opts RunOpts) (string, error) {
+	args := []string{"apply", "-f", "-"}
+	opts.StdinReader = strings.NewReader(yaml)
+	return k.RunWithOpts(args, opts)
+}
+
+// DeleteYaml deletes resources described in YAML via kubectl delete
+func (k Kubectl) DeleteYaml(yaml string, opts RunOpts) (string, error) {
+	args := []string{"delete", "--ignore-not-found=true", "-f", "-"}
+	opts.StdinReader = strings.NewReader(yaml)
+	return k.RunWithOpts(args, opts)
+}
+
+// DeleteByLabel deletes all resources with a specific label
+func (k Kubectl) DeleteByLabel(labelKey, labelValue string, opts RunOpts) (string, error) {
+	selector := fmt.Sprintf("%s=%s", labelKey, labelValue)
+	args := []string{"delete", "all", "--ignore-not-found=true", "-l", selector}
+	return k.RunWithOpts(args, opts)
 }
