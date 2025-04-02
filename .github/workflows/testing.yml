@@ -106,8 +106,11 @@ jobs:
           # Use kustomize to build the resources before applying
           kubectl kustomize config/kustomize/overlays/dev | kubectl apply -f -
 
-          # Update the deployed image to use the one we just built
+          # Update the deployed image to use the one we just built 
+          # and set imagePullPolicy to IfNotPresent to use locally loaded image
           kubectl set image -n templated-secret-dev deployment/templated-secret-controller controller=${IMG}:${TAG}
+          kubectl patch deployment -n templated-secret-dev templated-secret-controller --type=json \
+            -p='[{"op": "replace", "path": "/spec/template/spec/containers/0/imagePullPolicy", "value": "IfNotPresent"}]'
 
           echo "=== Initial pod status after deployment ==="
           kubectl -n templated-secret-dev get pods
