@@ -96,7 +96,7 @@ jobs:
 
           # Wait for CRDs to be established
           echo "Waiting for CRDs to be established..."
-          kubectl wait --for=condition=established --timeout=60s crd/secrettemplates.templated-secret.drae.dev
+          kubectl wait --for=condition=established --timeout=60s crd/secrettemplates.templatedsecret.starstreak.dev
 
       - name: Deploy controller
         run: |
