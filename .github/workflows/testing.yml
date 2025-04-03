@@ -41,7 +41,7 @@ jobs:
       - name: Set up go
         uses: actions/setup-go@v5
         with:
-          go-version: "1.24.1" # Specify exact version instead of using go-version-file
+          go-version: "1.24.2" # Specify exact version instead of using go-version-file
 
       #      - name: Check format
       #        run: make fmt
