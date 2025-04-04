@@ -43,3 +43,8 @@ func (i GenerateInputs) IsChanged(anns map[string]string) bool {
 
 	return string(bs) != existingVal
 }
+
+// WithInputs sets the inputs for the GenerateInputs
+func (i GenerateInputs) WithInputs(inputs interface{}) GenerateInputs {
+	return GenerateInputs{inputs: inputs}
+}

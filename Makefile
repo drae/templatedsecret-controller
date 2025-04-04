@@ -22,7 +22,41 @@ all: build
 # Run tests
 .PHONY: test
 test:
-	go test ./... -coverprofile cover.out
+	NAMESPACE=templated-secret-dev go test ./... -coverprofile cover.out
+
+# Show test coverage details
+.PHONY: coverage
+coverage: test
+	go tool cover -func=cover.out
+
+# Show test coverage in browser
+.PHONY: coverage-html
+coverage-html: test
+	go tool cover -html=cover.out
+
+# Run tests with specific package path
+.PHONY: test-pkg
+test-pkg:
+	NAMESPACE=templated-secret-dev go test $(PKG) -coverprofile cover.out -v
+
+# Test coverage for each package
+.PHONY: coverage-by-pkg
+coverage-by-pkg:
+	@echo "Running tests and generating coverage by package..."
+	@for pkg in $$(go list ./... | grep -v "/vendor/" | grep -v "/test/e2e"); do \
+		echo "Testing $$pkg"; \
+		NAMESPACE=templated-secret-dev go test -coverprofile=coverage.tmp $$pkg || exit 1; \
+		if [ -f coverage.tmp ]; then \
+			go tool cover -func=coverage.tmp | tail -n 1; \
+			rm coverage.tmp; \
+		fi; \
+	done
+
+# Run tests only for uncovered areas (less than 50% coverage)
+.PHONY: test-low-coverage
+test-low-coverage: coverage
+	@echo "Packages with coverage below 50%:"
+	@go tool cover -func=cover.out | grep -v "100.0%" | awk '$$3 < 50.0 {print $$1}'
 
 # Build the binary
 .PHONY: build

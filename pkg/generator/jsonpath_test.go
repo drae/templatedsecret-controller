@@ -71,3 +71,26 @@ func Test_SecretTemplate_Templating_Syntax(t *testing.T) {
 		assert.Equal(t, tc.expected, result)
 	}
 }
+
+// Test the Replace function which is used internally by JSONPath
+func Test_Replace(t *testing.T) {
+	// Test normal replacement case
+	result := generator.Replace("hello world", 6, "world", "everyone")
+	assert.Equal(t, "hello everyone", result)
+	
+	// Test replacement at beginning of string
+	result = generator.Replace("hello world", 0, "hello", "hi")
+	assert.Equal(t, "hi world", result)
+	
+	// Test replacement at end of string
+	result = generator.Replace("hello world", 6, "world", "")
+	assert.Equal(t, "hello ", result)
+	
+	// Test edge case: when replacement would exceed string length
+	result = generator.Replace("hello", 3, "loworld", "everyone")
+	assert.Equal(t, "heleveryone", result)
+	
+	// Test edge case: when index is beyond string length
+	result = generator.Replace("hello", 10, "world", "everyone")
+	assert.Equal(t, "helloeveryone", result)
+}
