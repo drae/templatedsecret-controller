@@ -1,0 +1,187 @@
+name: Run tests
+
+on:
+  pull_request:
+    types: [opened, reopened, synchronize]
+    paths-ignore:
+      - "docs/**"
+  push:
+    branches:
+      - main
+    paths-ignore:
+      - "docs/**"
+      - "*.md"
+  workflow_dispatch:
+
+# Define environment variables to be used across jobs
+env:
+  IMG: ghcr.io/drae/templated-secret-controller
+  TAG: dev
+
+jobs:
+  run-tests:
+    name: e2e tests on kind
+    runs-on: ubuntu-latest
+    steps:
+      - name: Create k8s Kind Cluster
+        uses: helm/kind-action@v1
+        with:
+          cluster_name: kinder
+
+      - name: Check out code into the Go module directory
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
+      # Set the TAG based on git describe if possible
+      - name: Set TAG env
+        run: |
+          echo "TAG=$(git describe --tags --always --dirty 2>/dev/null || echo "dev")" >> $GITHUB_ENV
+
+      - name: Set up go
+        uses: actions/setup-go@v5
+        with:
+          go-version: "1.24.2" # Specify exact version instead of using go-version-file
+
+      #      - name: Check format
+      #        run: make fmt
+      #
+      #      - name: Run vet
+      #        run: make vet
+
+      # Set up Docker BuildX with a builder that supports multi-platform builds
+      - name: Set up Docker Buildx
+        uses: docker/setup-buildx-action@v3
+        with:
+          install: true
+          driver-opts: image=moby/buildkit:buildx-stable-1
+
+      - name: Build controller image
+        run: |
+          # Build the image and load it into the local docker daemon
+          docker buildx build --platform=linux/amd64 \
+            --load \
+            --build-arg SGCTRL_VER=${TAG} \
+            -t ${IMG}:${TAG} .
+
+          # Verify the image exists locally
+          docker images ${IMG}:${TAG}
+
+      - name: Load image to Kind and verify
+        run: |
+          # Load the image into Kind with retry mechanism
+          for i in {1..3}; do
+            echo "Attempt $i: Loading image into Kind cluster..."
+            kind load docker-image --name kinder ${IMG}:${TAG} && break
+            if [ $i -eq 3 ]; then
+              echo "Failed to load image after 3 attempts"
+              exit 1
+            fi
+            echo "Retrying in 5 seconds..."
+            sleep 5
+          done
+
+          # Verify the image is available in Kind
+          echo "Verifying image is available in Kind cluster..."
+          NODES=$(kind get nodes --name kinder)
+          for node in $NODES; do
+            echo "Checking node: $node"
+            docker exec $node crictl images | grep ${IMG}
+          done
+
+      - name: Deploy CRDs
+        run: |
+          make manifests
+          kubectl apply -f config/kustomize/base/crds/
+
+          # Wait for CRDs to be established
+          echo "Waiting for CRDs to be established..."
+          kubectl wait --for=condition=established --timeout=60s crd/secrettemplates.templatedsecret.starstreak.dev
+
+      - name: Deploy controller
+        run: |
+          # Create namespace if it doesn't exist
+          kubectl create namespace templated-secret-dev --dry-run=client -o yaml | kubectl apply -f -
+
+          # Use kustomize to build the resources before applying
+          kubectl kustomize config/kustomize/overlays/dev | kubectl apply -f -
+
+          # Update the deployed image to use the one we just built 
+          # and set imagePullPolicy to IfNotPresent to use locally loaded image
+          kubectl set image -n templated-secret-dev deployment/templated-secret-controller controller=${IMG}:${TAG}
+          kubectl patch deployment -n templated-secret-dev templated-secret-controller --type=json \
+            -p='[{"op": "replace", "path": "/spec/template/spec/containers/0/imagePullPolicy", "value": "IfNotPresent"}]'
+
+          echo "=== Initial pod status after deployment ==="
+          kubectl -n templated-secret-dev get pods
+
+      - name: Wait for controller deployment
+        run: |
+          echo "Waiting for controller deployment to be ready..."
+
+          # Function to check deployment status with detailed diagnostics
+          check_deployment() {
+            echo "--- Checking deployment status ---"
+            kubectl -n templated-secret-dev get deployment/templated-secret-controller -o wide
+            
+            echo "--- Checking pod status ---"
+            kubectl -n templated-secret-dev get pods -o wide
+            
+            # Check for any pod events that might indicate issues
+            echo "--- Recent pod events ---"
+            PODS=$(kubectl -n templated-secret-dev get pods -l app=templated-secret-controller -o name)
+            for pod in $PODS; do
+              echo "Events for $pod:"
+              kubectl -n templated-secret-dev describe $pod | grep -A 10 Events:
+            done
+            
+            # Check if deployment is available
+            AVAILABLE=$(kubectl -n templated-secret-dev get deployment/templated-secret-controller -o jsonpath='{.status.availableReplicas}')
+            if [ "$AVAILABLE" == "1" ]; then
+              return 0
+            else
+              return 1
+            fi
+          }
+
+          # Implement a polling approach with backoff
+          MAX_ATTEMPTS=10
+          ATTEMPT=1
+          WAIT_TIME=10
+
+          while [ $ATTEMPT -le $MAX_ATTEMPTS ]; do
+            echo "Attempt $ATTEMPT of $MAX_ATTEMPTS (waiting ${WAIT_TIME}s between attempts)"
+            
+            if check_deployment; then
+              echo "✅ Controller deployment is ready!"
+              break
+            fi
+            
+            if [ $ATTEMPT -eq $MAX_ATTEMPTS ]; then
+              echo "❌ Timed out waiting for deployment to be ready"
+              
+              # Even if we time out, let's see if we can get logs from any pods that might exist
+              echo "--- Controller logs (if available) ---"
+              PODS=$(kubectl -n templated-secret-dev get pods -l app=templated-secret-controller -o name 2>/dev/null || echo "")
+              if [ -n "$PODS" ]; then
+                for pod in $PODS; do
+                  echo "Logs from $pod:"
+                  kubectl -n templated-secret-dev logs $pod --tail=50 || echo "Could not retrieve logs"
+                done
+              fi
+              
+              # Continue anyway - the tests might still work if the deployment is partially ready
+              echo "Continuing with tests despite timeout..."
+            else
+              echo "Waiting ${WAIT_TIME} seconds before next attempt..."
+              sleep $WAIT_TIME
+              # Increase wait time for next attempt (backoff strategy)
+              WAIT_TIME=$((WAIT_TIME + 5))
+              ATTEMPT=$((ATTEMPT + 1))
+            fi
+          done
+
+      - name: Run tests
+        run: |
+          mkdir -p tmp
+          NAMESPACE=templated-secret-dev ./hack/test-e2e.sh
