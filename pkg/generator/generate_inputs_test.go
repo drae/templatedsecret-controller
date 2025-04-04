@@ -29,23 +29,23 @@ func TestIsChanged_NewInput(t *testing.T) {
 	// Test when the annotation doesn't exist (should return true)
 	inputs := generator.GenerateInputs{}.WithInputs(map[string]string{"key": "value"})
 	anns := map[string]string{}
-	
+
 	isChanged := inputs.IsChanged(anns)
-	
+
 	assert.True(t, isChanged, "Should return true when annotation doesn't exist")
 }
 
 func TestIsChanged_DifferentInput(t *testing.T) {
 	// Test when the annotation exists but with different value
 	inputs := generator.GenerateInputs{}.WithInputs(map[string]string{"key": "new-value"})
-	
+
 	// Create annotations with a different serialized value
 	anns := map[string]string{
 		"templatedsecret.starstreak.dev/generate-inputs": `{"key":"old-value"}`,
 	}
-	
+
 	isChanged := inputs.IsChanged(anns)
-	
+
 	assert.True(t, isChanged, "Should return true when inputs are different")
 }
 
@@ -53,14 +53,14 @@ func TestIsChanged_SameInput(t *testing.T) {
 	// Test when the annotation exists with the same value
 	testInput := map[string]string{"key": "same-value"}
 	inputs := generator.GenerateInputs{}.WithInputs(testInput)
-	
+
 	// Create annotations with the same serialized value
 	anns := map[string]string{}
 	err := generator.GenerateInputs{}.WithInputs(testInput).Add(anns)
 	assert.NoError(t, err)
-	
+
 	isChanged := inputs.IsChanged(anns)
-	
+
 	assert.False(t, isChanged, "Should return false when inputs are the same")
 }
 
@@ -73,15 +73,15 @@ func TestIsChanged_ComplexInput(t *testing.T) {
 			"array": []string{"a", "b", "c"},
 		},
 	}
-	
+
 	inputs := generator.GenerateInputs{}.WithInputs(complexInput)
-	
+
 	// Create annotations with the same serialized value
 	anns := map[string]string{}
 	err := generator.GenerateInputs{}.WithInputs(complexInput).Add(anns)
 	assert.NoError(t, err)
-	
+
 	isChanged := inputs.IsChanged(anns)
-	
+
 	assert.False(t, isChanged, "Should return false when complex inputs are the same")
 }

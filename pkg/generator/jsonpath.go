@@ -68,7 +68,7 @@ func replace(s string, i int, old, new string) string {
 	if i >= len(s) {
 		return s + new
 	}
-	
+
 	if i+len(old) > len(s) {
 		return fmt.Sprintf("%s%s", s[0:i], new)
 	}
