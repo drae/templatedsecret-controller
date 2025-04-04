@@ -8,3 +8,5 @@
 /.archive
 /.env
 /bin
+/cover.out
+/generate.out
