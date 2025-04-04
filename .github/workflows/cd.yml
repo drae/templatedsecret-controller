@@ -9,6 +9,7 @@ permissions:
   contents: write # Needed for uploading release artifacts and creating release notes
   packages: write # Needed for container registry
   id-token: write # Needed for keyless cosign signing
+  security-events: write # Needed for uploading SARIF results
 
 jobs:
   build-and-test:
@@ -43,6 +44,8 @@ jobs:
     runs-on: ubuntu-latest
     env:
       COSIGN_EXPERIMENTAL: "true"
+    outputs:
+      image-digest: ${{ steps.build-push.outputs.digest }}
     steps:
       - name: Checkout code
         uses: actions/checkout@v4
@@ -96,9 +99,34 @@ jobs:
         run: |
           cosign sign --yes "ghcr.io/${{ github.repository }}@${{ steps.build-push.outputs.digest }}"
 
+  vulnerability-scan:
+    name: Vulnerability Scan
+    needs: build-and-push-image
+    runs-on: ubuntu-latest
+    permissions:
+      security-events: write
+    steps:
+      - name: Install Grype
+        uses: anchore/scan-action/download-grype@v6.1.0
+        id: install-grype
+
+      - name: Scan Image for Vulnerabilities
+        uses: anchore/scan-action@v6.1.0
+        id: scan
+        with:
+          image: "ghcr.io/${{ github.repository }}@${{ needs.build-and-push-image.outputs.image-digest }}"
+          fail-build: false
+          severity-cutoff: critical
+
+      - name: Upload Vulnerability Report
+        uses: github/codeql-action/upload-sarif@v3
+        with:
+          sarif_file: ${{ steps.scan.outputs.sarif }}
+          category: container-scan
+
   generate-release-artifacts:
     name: Generate Release Artifacts
-    needs: build-and-push-image
+    needs: [build-and-push-image, vulnerability-scan]
     runs-on: ubuntu-latest
     steps:
       - name: Checkout code
