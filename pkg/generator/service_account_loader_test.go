@@ -22,7 +22,7 @@ func (m *SimpleTokenManager) GetServiceAccountToken(ctx context.Context, namespa
 	if m.Err != nil {
 		return nil, m.Err
 	}
-	
+
 	return &authv1.TokenRequest{
 		Status: authv1.TokenRequestStatus{
 			Token: m.Token,
@@ -34,10 +34,10 @@ func (m *SimpleTokenManager) GetServiceAccountToken(ctx context.Context, namespa
 func Test_NewServiceAccountLoader(t *testing.T) {
 	// Create a simple token manager
 	tokenManager := &SimpleTokenManager{Token: "test-token"}
-	
+
 	// Create a new ServiceAccountLoader with the mock
 	loader := generator.NewServiceAccountLoader(tokenManager)
-	
+
 	// Assert that the loader is not nil
 	assert.NotNil(t, loader)
 }

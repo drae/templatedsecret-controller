@@ -181,7 +181,7 @@ func TestWithReconcileCompleted_Success(t *testing.T) {
 	// Verify the status was updated correctly
 	assert.Equal(t, 1, len(updatedStatus.Conditions))
 	assert.Equal(t, tsv1alpha1.ReconcileSucceeded, updatedStatus.Conditions[0].Type)
-	
+
 	// Verify the result and error are passed through unchanged
 	assert.Equal(t, expectedResult, result)
 	assert.NoError(t, err)
@@ -205,7 +205,7 @@ func TestWithReconcileCompleted_TerminalError(t *testing.T) {
 	assert.Equal(t, 1, len(updatedStatus.Conditions))
 	assert.Equal(t, tsv1alpha1.ReconcileFailed, updatedStatus.Conditions[0].Type)
 	assert.Equal(t, "terminal error", updatedStatus.Conditions[0].Message)
-	
+
 	// Terminal errors should return empty Result and nil error
 	assert.Equal(t, reconcile.Result{}, result)
 	assert.NoError(t, err)
@@ -230,7 +230,7 @@ func TestWithReconcileCompleted_NonTerminalError(t *testing.T) {
 	assert.Equal(t, 1, len(updatedStatus.Conditions))
 	assert.Equal(t, tsv1alpha1.ReconcileFailed, updatedStatus.Conditions[0].Type)
 	assert.Equal(t, "non-terminal error", updatedStatus.Conditions[0].Message)
-	
+
 	// Non-terminal errors should pass through the result and error unchanged
 	assert.Equal(t, expectedResult, result)
 	assert.Equal(t, nonTerminalErr, err)
@@ -240,6 +240,6 @@ func TestTerminalReconcileErr(t *testing.T) {
 	// Test the error message is passed through
 	innerErr := errors.New("inner error")
 	terminalErr := reconciler.TerminalReconcileErr{Err: innerErr}
-	
+
 	assert.Equal(t, "inner error", terminalErr.Error())
 }

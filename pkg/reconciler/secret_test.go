@@ -96,10 +96,10 @@ func TestApplyTemplate(t *testing.T) {
 	// Verify metadata was applied
 	assert.Equal(t, "production", k8sSecret.Labels["environment"])
 	assert.Equal(t, "test", k8sSecret.Annotations["created-by"])
-	
+
 	// Verify type was applied
 	assert.Equal(t, corev1.SecretTypeOpaque, k8sSecret.Type)
-	
+
 	// Verify string data was expanded correctly
 	expectedJSON := `{"user": "admin", "password": "secret123"}`
 	assert.Equal(t, []byte(expectedJSON), k8sSecret.Data["config.json"])
@@ -146,8 +146,8 @@ func TestApplyTemplates(t *testing.T) {
 			},
 		},
 		StringData: map[string]string{
-			"default.txt": "Default content for $(ENV)",  // Keep the default.txt key
-			"custom.txt": "Custom content for $(USERNAME)",
+			"default.txt": "Default content for $(ENV)", // Keep the default.txt key
+			"custom.txt":  "Custom content for $(USERNAME)",
 		},
 	}
 
@@ -158,7 +158,7 @@ func TestApplyTemplates(t *testing.T) {
 
 	// Verify label was overridden
 	assert.Equal(t, "custom", k8sSecret.Labels["type"])
-	
+
 	// Verify both templates' data was applied (now both should be in the custom template)
 	assert.Equal(t, []byte("Default content for staging"), k8sSecret.Data["default.txt"])
 	assert.Equal(t, []byte("Custom content for admin"), k8sSecret.Data["custom.txt"])
@@ -193,7 +193,7 @@ func TestApplySecret(t *testing.T) {
 
 	// Verify type was applied
 	assert.Equal(t, corev1.SecretTypeTLS, k8sSecret.Type)
-	
+
 	// Verify data was copied
 	assert.Equal(t, []byte("certificate-data"), k8sSecret.Data["tls.crt"])
 	assert.Equal(t, []byte("key-data"), k8sSecret.Data["tls.key"])
