@@ -1,5 +1,4 @@
-name: Run tests
-
+name: Continuous Integration
 on:
   pull_request:
     types: [opened, reopened, synchronize]
@@ -7,7 +6,7 @@ on:
       - "docs/**"
   push:
     branches:
-      - develop
+      - main
     paths-ignore:
       - "docs/**"
       - "*.md"
@@ -20,7 +19,7 @@ env:
 
 jobs:
   run-tests:
-    name: e2e tests on kind
+    name: Controller continuous integration
     runs-on: ubuntu-latest
     steps:
       - name: Create k8s Kind Cluster
@@ -41,13 +40,8 @@ jobs:
       - name: Set up go
         uses: actions/setup-go@v5
         with:
-          go-version: "1.24.2" # Specify exact version instead of using go-version-file
-
-      #      - name: Check format
-      #        run: make fmt
-      #
-      #      - name: Run vet
-      #        run: make vet
+          go-version-file: go.mod
+          cache: true
 
       # Set up Docker BuildX with a builder that supports multi-platform builds
       - name: Set up Docker Buildx
@@ -184,4 +178,4 @@ jobs:
       - name: Run tests
         run: |
           mkdir -p tmp
-          NAMESPACE=templated-secret-dev ./hack/test-e2e.sh
+          NAMESPACE=templated-secret-dev ./hack/ci.sh

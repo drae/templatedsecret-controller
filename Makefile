@@ -43,7 +43,7 @@ test-pkg:
 .PHONY: coverage-by-pkg
 coverage-by-pkg:
 	@echo "Running tests and generating coverage by package..."
-	@for pkg in $$(go list ./... | grep -v "/vendor/" | grep -v "/test/e2e"); do \
+	@for pkg in $$(go list ./... | grep -v "/vendor/" | grep -v "/test/ci"); do \
 		echo "Testing $$pkg"; \
 		NAMESPACE=templated-secret-dev go test -coverprofile=coverage.tmp $$pkg || exit 1; \
 		if [ -f coverage.tmp ]; then \

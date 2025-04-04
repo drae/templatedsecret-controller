@@ -1,6 +1,6 @@
 #!/bin/bash
 
-set -e -u
+set -eo pipefail
 
 if [[ $# -ne 1 ]]; then
     echo "Usage: ./hack/prepare-release.sh <version>"

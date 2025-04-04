@@ -1,17 +1,18 @@
 // Copyright 2024 The Carvel Authors.
 // SPDX-License-Identifier: Apache-2.0
 
-package e2e
+package ci
 
 import (
 	"testing"
+
+	"time"
 
 	tsv1alpha1 "github.com/drae/templated-secret-controller/pkg/apis/templatedsecret/v1alpha1"
 	"github.com/ghodss/yaml"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 	corev1 "k8s.io/api/core/v1"
-	"time"
 )
 
 func TestSecretTemplate_Full_Lifecycle(t *testing.T) {

@@ -98,10 +98,10 @@ make test
 
 ### End-to-End Tests
 
-End-to-end tests are located in the `test/e2e` directory and can be executed with:
+End-to-end tests are located in the `test/ci` directory and can be executed with:
 
 ```shell
-go test ./test/e2e -v
+go test ./test/ci -v
 ```
 
 ## Releasing

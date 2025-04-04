@@ -1,6 +1,6 @@
 #!/bin/bash
 
-set -e -x
+set -euo pipefail
 
 if [ -z "$GITHUB_ACTION" ]; then
   go clean -testcache

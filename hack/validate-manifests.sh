@@ -3,7 +3,7 @@
 # This script validates that all Kubernetes resources in a YAML file have the required fields
 # Specifically checking for apiVersion and kind fields
 
-set -euo pipefail
+set -eo pipefail
 
 FILE=${1:-"dist/templated-secret-controller-base.yaml"}
 

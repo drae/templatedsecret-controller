@@ -1,6 +1,6 @@
 #!/bin/bash
 
-set -e -x -u
+set -euo pipefail
 
 # Get the correct Go module paths
 MODULE_PATH="github.com/drae/templated-secret-controller"
