@@ -1,0 +1,79 @@
+project_name: templated-secret-controller
+
+before:
+  hooks:
+    - go mod tidy
+    - go test ./pkg/... -test.v
+
+builds:
+  - env:
+      - CGO_ENABLED=0
+    goos:
+      - linux
+    goarch:
+      - amd64
+      - arm64
+    ldflags:
+      - -s -w
+      - -X github.com/{{.Env.REPOSITORY_OWNER}}/{{.Env.REPOSITORY_NAME}}/internal/version.Version={{.Version}}
+      - -X github.com/{{.Env.REPOSITORY_OWNER}}/{{.Env.REPOSITORY_NAME}}/internal/version.Commit={{.Commit}}
+      - -X github.com/{{.Env.REPOSITORY_OWNER}}/{{.Env.REPOSITORY_NAME}}/internal/version.Date={{.Date}}
+    main: ./cmd/controller/main.go
+
+dockers:
+  - image_templates:
+      - "ghcr.io/{{.Env.REPOSITORY_OWNER}}/{{.Env.REPOSITORY_NAME}}:{{ .Version }}"
+      - "ghcr.io/{{.Env.REPOSITORY_OWNER}}/{{.Env.REPOSITORY_NAME}}:latest"
+    dockerfile: Dockerfile
+    use: buildx
+    build_flag_templates:
+      - "--platform=linux/amd64,linux/arm64"
+      - "--label=org.opencontainers.image.created={{.Date}}"
+      - "--label=org.opencontainers.image.title={{.ProjectName}}"
+      - "--label=org.opencontainers.image.revision={{.FullCommit}}"
+      - "--label=org.opencontainers.image.version={{.Version}}"
+    extra_files:
+      - go.mod
+      - go.sum
+      - cmd/
+      - pkg/
+      - internal/
+
+signs:
+  - cmd: cosign
+    stdin: "{{ .Env.COSIGN_PASSWORD }}"
+    args:
+      - sign
+      - --key=env://COSIGN_PRIVATE_KEY
+      - "${artifact}"
+    artifacts: all
+
+archives:
+  - format: tar.gz
+    name_template: >-
+      {{ .ProjectName }}_
+      {{- title .Os }}_
+      {{- if eq .Arch "amd64" }}x86_64
+      {{- else if eq .Arch "386" }}i386
+      {{- else }}{{ .Arch }}{{ end }}
+    files:
+      - LICENSE
+      - README.md
+
+checksum:
+  name_template: "checksums.txt"
+
+changelog:
+  sort: asc
+  filters:
+    exclude:
+      - "^docs:"
+      - "^test:"
+      - "^ci:"
+      - Merge pull request
+      - Merge branch
+
+release:
+  github:
+    owner: "{{.Env.REPOSITORY_OWNER}}"
+    name: "{{.Env.REPOSITORY_NAME}}"
