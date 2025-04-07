@@ -1,0 +1,13 @@
+apiVersion: v2
+name: templated-secret-controller
+description: A Helm chart for the Templated Secret Controller
+type: application
+version: 0.1.0
+appVersion: "latest"
+keywords:
+  - kubernetes
+  - secrets
+  - templating
+maintainers:
+  - name: starstreak.dev
+    url: https://github.com/drae/

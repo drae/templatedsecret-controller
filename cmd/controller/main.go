@@ -4,6 +4,7 @@
 package main
 
 import (
+	"context"
 	"flag"
 	"fmt"
 	"os"
@@ -15,9 +16,15 @@ import (
 	"github.com/drae/templated-secret-controller/pkg/tracker"
 
 	"github.com/go-logr/logr"
+	apiextensionsv1 "k8s.io/apiextensions-apiserver/pkg/apis/apiextensions/v1"
+	apiextensionsclientset "k8s.io/apiextensions-apiserver/pkg/client/clientset/clientset"
+	apierrors "k8s.io/apimachinery/pkg/api/errors"
+	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
+	"k8s.io/apimachinery/pkg/util/wait"
 	"k8s.io/client-go/kubernetes"
 	"k8s.io/client-go/kubernetes/scheme"
 	_ "k8s.io/client-go/plugin/pkg/client/auth/gcp"
+	"k8s.io/client-go/rest"
 	"k8s.io/client-go/util/workqueue"
 	"sigs.k8s.io/controller-runtime/pkg/cache"
 	"sigs.k8s.io/controller-runtime/pkg/client/config"
@@ -57,6 +64,10 @@ func main() {
 
 	// Register API types
 	tsv1alpha1.AddToScheme(scheme.Scheme)
+
+	// Wait for CRDs to be ready before starting controller
+	entryLog.Info("waiting for SecretTemplate CRD to be ready")
+	exitIfErr(entryLog, "waiting for CRDs", waitForCRDs(restConfig, entryLog))
 
 	// Setup manager options
 	recoverPanic := true
@@ -158,4 +169,39 @@ func exitIfErr(entryLog logr.Logger, desc string, err error) {
 		entryLog.Error(err, desc)
 		os.Exit(1)
 	}
+}
+
+func waitForCRDs(restConfig *rest.Config, entryLog logr.Logger) error {
+	apiExtClient, err := apiextensionsclientset.NewForConfig(restConfig)
+	if err != nil {
+		return fmt.Errorf("unable to create API extensions client: %w", err)
+	}
+
+	return wait.PollImmediate(1*time.Second, 60*time.Second, func() (bool, error) {
+		_, err := apiExtClient.ApiextensionsV1().CustomResourceDefinitions().Get(context.TODO(), "secrettemplates.templatedsecret.starstreak.dev", metav1.GetOptions{})
+		if err != nil {
+			if apierrors.IsNotFound(err) {
+				entryLog.Info("SecretTemplate CRD not found, retrying...")
+				return false, nil
+			}
+			return false, err
+		}
+
+		// Also check that the CRD is established
+		crd, err := apiExtClient.ApiextensionsV1().CustomResourceDefinitions().Get(context.TODO(), "secrettemplates.templatedsecret.starstreak.dev", metav1.GetOptions{})
+		if err != nil {
+			return false, err
+		}
+
+		for _, condition := range crd.Status.Conditions {
+			if condition.Type == apiextensionsv1.Established &&
+				condition.Status == apiextensionsv1.ConditionTrue {
+				entryLog.Info("SecretTemplate CRD is established")
+				return true, nil
+			}
+		}
+
+		entryLog.Info("SecretTemplate CRD found but not yet established, retrying...")
+		return false, nil
+	})
 }

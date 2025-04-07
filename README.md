@@ -20,7 +20,28 @@ templated-secret-controller provides a custom resource for generating and managi
 
 ## Installation
 
-### Using Kustomize (recommended)
+### Using Helm
+
+Deploy the controller using Helm:
+
+```shell
+# Clone the repository
+git clone https://github.com/drae/templated-secret-controller.git
+cd templated-secret-controller
+
+# Install with default settings
+helm install templated-secret-controller ./charts/templated-secret-controller
+
+# Install with metrics disabled
+helm install templated-secret-controller ./charts/templated-secret-controller --set metrics.enabled=false
+
+# Install without CRDs (if you've already installed them)
+helm install templated-secret-controller ./charts/templated-secret-controller --set crds.create=false
+```
+
+For more information on configuration options, see the [Helm chart README](./charts/templated-secret-controller/README.md).
+
+### Using Kustomize
 
 Deploy the controller directly with kustomize:
 

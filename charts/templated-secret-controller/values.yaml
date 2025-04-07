@@ -1,0 +1,91 @@
+# Default values for templated-secret-controller.
+# This is a YAML-formatted file.
+# Declare variables to be passed into your templates.
+
+# Number of controller replicas to run
+replicaCount: 1
+
+# Image repository and tag settings
+image:
+  repository: ghcr.io/drae/templated-secret-controller
+  pullPolicy: IfNotPresent
+  # Overrides the image tag whose default is the chart appVersion.
+  tag: latest
+
+# Sorted alphabetically below this point
+affinity: {}
+
+# CRDs installation
+crds:
+  # Specifies whether the CRDs should be installed
+  create: true
+  # Use template-based CRD installation instead of the standard Helm CRD directory
+  # Not recommended: the standard CRD directory approach is preferred
+  useTemplate: false
+
+fullnameOverride: ""
+
+imagePullSecrets: []
+
+# Metrics configuration - SUPPORTED
+metrics:
+  # Enable or disable metrics
+  enabled: true
+  service:
+    type: ClusterIP
+    port: 8080
+  # Configure the metrics endpoint
+  bindAddress: ":8080"
+
+nameOverride: ""
+
+nodeSelector: {}
+
+podAnnotations: {}
+
+podSecurityContext: {}
+
+# Resource requirements
+resources:
+  limits:
+    cpu: 100m
+    memory: 50Mi
+  requests:
+    cpu: 100m
+    memory: 30Mi
+
+# Security context for the controller container
+securityContext:
+  runAsNonRoot: true
+  allowPrivilegeEscalation: false
+  capabilities:
+    drop:
+      - ALL
+  readOnlyRootFilesystem: true
+  runAsUser: 65532
+
+# Service account configuration
+serviceAccount:
+  # Specifies whether a service account should be created
+  create: true
+  # Annotations to add to the service account
+  annotations: {}
+  # The name of the service account to use.
+  # If not set and create is true, a name is generated using the fullname template
+  name: ""
+
+# Prometheus ServiceMonitor configuration - SUPPORTED when metrics.enabled=true
+serviceMonitor:
+  enabled: false
+  # Additional labels for the ServiceMonitor
+  additionalLabels: {}
+  # Scrape interval
+  interval: 30s
+  # Scrape timeout
+  scrapeTimeout: 10s
+  # Metric relabelings
+  metricRelabelings: []
+  # Relabelings
+  relabelings: []
+
+tolerations: []
