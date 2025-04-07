@@ -1,3 +1,6 @@
+version: 2
+dist: build
+
 project_name: templated-secret-controller
 
 before:
