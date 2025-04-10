@@ -4,6 +4,10 @@ description: A Helm chart for the Templated Secret Controller
 type: application
 version: 0.1.0
 appVersion: "latest"
+kubeVersion: ">=1.16.0-0"
+home: https://github.com/drae/templated-secret-controller
+sources:
+  - https://github.com/drae/templated-secret-controller
 keywords:
   - kubernetes
   - secrets
