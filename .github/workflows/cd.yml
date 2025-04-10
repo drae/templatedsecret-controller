@@ -18,7 +18,7 @@ jobs:
     env:
       COSIGN_EXPERIMENTAL: "true"
     outputs:
-      image-digest: ${{ steps.build-push.outputs.digest }}
+      image-digest: ${{ steps.goreleaser.outputs.digest }}
     steps:
       - name: Checkout code
         uses: actions/checkout@v4
@@ -48,6 +48,7 @@ jobs:
           password: ${{ secrets.GITHUB_TOKEN }}
 
       - name: Run GoReleaser
+        id: goreleaser
         uses: goreleaser/goreleaser-action@v6
         with:
           distribution: goreleaser
@@ -59,7 +60,7 @@ jobs:
 
   vulnerability-scan:
     name: Vulnerability Scan
-    needs: build-and-push-image
+    needs: goreleaser
     runs-on: ubuntu-latest
     permissions:
       security-events: write
@@ -72,7 +73,7 @@ jobs:
         uses: anchore/scan-action@v6.1.0
         id: scan
         with:
-          image: "ghcr.io/${{ github.repository }}@${{ needs.build-and-push-image.outputs.image-digest }}"
+          image: "ghcr.io/${{ github.repository }}@${{ needs.goreleaser.outputs.image-digest }}"
           fail-build: false
           severity-cutoff: critical
 
@@ -84,21 +85,24 @@ jobs:
 
   generate-release-artifacts:
     name: Generate Release Artifacts
-    needs: [build-and-push-image, vulnerability-scan]
+    needs: [goreleaser, vulnerability-scan]
     runs-on: ubuntu-latest
-    permissions:
-      security-events: write
     steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
       - name: Set Image Reference
         id: image-ref
         run: |
-          REPOSITORY="${{ github.repository_owner }}/${{ github.event.repository.name }}"
+          REPOSITORY="${{ github.repository }}"
           TAG="${{ github.ref_name }}"
           echo "image=ghcr.io/${REPOSITORY}:${TAG}" >> $GITHUB_OUTPUT
 
-      - name: Install Grype
-        uses: anchore/scan-action/download-grype@v6.1.0
-        id: install-grype
+      - name: Generate Release Notes
+        run: |
+          PREV_TAG=$(git describe --abbrev=0 --tags --exclude="${{ github.ref_name }}" 2>/dev/null || echo "")
           if [ -n "$PREV_TAG" ]; then
             echo "## Changes since ${PREV_TAG}" > release-notes.md
             echo "" >> release-notes.md
@@ -107,10 +111,3 @@ jobs:
             echo "## Initial release" > release-notes.md
             echo "" >> release-notes.md
             git log --pretty=format:"* %s" >> release-notes.md
-          fi
-          echo '```' >> release-notes.md
-      - name: Upload Vulnerability Report
-        uses: github/codeql-action/upload-sarif@v3
-        with:
-          sarif_file: ${{ steps.scan.outputs.sarif }}
-          category: container-scan

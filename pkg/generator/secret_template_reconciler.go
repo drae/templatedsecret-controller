@@ -83,9 +83,8 @@ func (r *SecretTemplateReconciler) SetReconciliationSettings(interval, maxAge ti
 	if interval > 0 {
 		r.reconciliationInterval = interval
 	}
-	if maxAge > 0 {
-		r.maxSecretAge = maxAge
-	}
+	// Allow maxAge to be 0 to disable age-based requeuing
+	r.maxSecretAge = maxAge
 
 	r.log.Info("Reconciliation settings configured",
 		"interval", r.reconciliationInterval.String(),
@@ -275,16 +274,18 @@ func (r *SecretTemplateReconciler) reconcile(ctx context.Context, secretTemplate
 
 	secretTemplate.Status.Secret.Name = secret.Name
 
-	// If not tracking input resources, periodically requeue using configured interval
-	if !shouldTrackInputResources(secretTemplate) {
+	// Only requeue if we have a service account or max age set
+	// When using a service account, we need to periodically reconcile since we can't rely on the tracker
+	if secretTemplate.Spec.ServiceAccountName != "" {
 		return reconcile.Result{RequeueAfter: r.reconciliationInterval}, nil
 	}
 
-	// Always check for age-based regeneration even if tracking resources
+	// If max age is set, periodically requeue to check for regeneration
 	if r.maxSecretAge > 0 {
 		return reconcile.Result{RequeueAfter: r.reconciliationInterval}, nil
 	}
 
+	// If no service account and no max age, don't requeue - rely on resource tracking to trigger reconciliation
 	return reconcile.Result{}, nil
 }
 

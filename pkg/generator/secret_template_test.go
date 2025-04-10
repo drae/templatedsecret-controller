@@ -800,6 +800,10 @@ func newReconciler(objects ...client.Object) (secretTemplateReconciler *generato
 	fakeManager := &fakeManager{cache: &fakeCacheAdapter{client: k8sClient}}
 	fakeClientLoader := fakeClientLoader{client: k8sClient}
 	secretTemplateReconciler = generator.NewSecretTemplateReconciler(fakeManager, k8sClient, &fakeClientLoader, tracker.NewTracker(), testLogr)
+	
+	// Set max secret age to zero for test purposes
+	// This ensures we don't requeue when ServiceAccountName is empty
+	secretTemplateReconciler.SetReconciliationSettings(30*time.Second, 0)
 
 	return secretTemplateReconciler, k8sClient
 }

@@ -26,7 +26,7 @@ builds:
 dockers:
   - image_templates:
       - "ghcr.io/{{.Env.REPOSITORY_OWNER}}/{{.Env.REPOSITORY_NAME}}:{{ .Version }}"
-      - "ghcr.io/{{.Env.REPOSITORY_OWNER}}/{{.Env.REPOSITORY_NAME}}:latest"
+      - "ghcr.io/{{.Env.REPOSITORY_NAME}}/{{.Env.REPOSITORY_NAME}}:latest"
     dockerfile: Dockerfile
     use: buildx
     build_flag_templates:
@@ -52,7 +52,7 @@ signs:
     artifacts: all
 
 archives:
-  - format: tar.gz
+  - # Default format is tar.gz for all platforms
     name_template: >-
       {{ .ProjectName }}_
       {{- title .Os }}_
