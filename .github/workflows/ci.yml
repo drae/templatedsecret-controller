@@ -83,15 +83,6 @@ jobs:
             docker exec $node crictl images | grep ${IMG}
           done
 
-      - name: Deploy CRDs
-        run: |
-          make manifests
-          kubectl apply -f config/kustomize/base/crds/
-
-          # Wait for CRDs to be established
-          echo "Waiting for CRDs to be established..."
-          kubectl wait --for=condition=established --timeout=60s crd/secrettemplates.templatedsecret.starstreak.dev
-
       - name: Deploy controller
         run: |
           # Create namespace if it doesn't exist
@@ -143,9 +134,9 @@ jobs:
             echo "Previous logs from $pod (if restarting):"
             kubectl -n templated-secret-dev logs $pod --all-containers --previous --tail=20 || echo "No previous logs available"
             
-            # Get container startup command and environment
+            # Get container startup command and environment - fixed to prevent double resource type specification
             echo "=== Container details for $pod ==="
-            kubectl -n templated-secret-dev describe pod $pod | grep -A 15 "Container ID:"
+            kubectl -n templated-secret-dev describe $pod | grep -A 15 "Container ID:"
           done
 
       - name: Wait for controller deployment
