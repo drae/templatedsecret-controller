@@ -9,8 +9,8 @@ metadata:
     {{- include "templated-secret-controller.labels" . | nindent 4 }}
     app.kubernetes.io/managed-by: Helm
 spec:
-  {{- if not .Values.autoscaling.enabled }}
-  replicas: {{ .Values.replicaCount }}
+  {{- if not (and .Values.autoscaling (eq .Values.autoscaling.enabled true)) }}
+  replicas: {{ .Values.replicaCount | int }}
   {{- end }}
   selector:
     matchLabels:

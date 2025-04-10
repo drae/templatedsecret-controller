@@ -142,10 +142,6 @@ func main() {
 	coreClient, err := kubernetes.NewForConfig(restConfig)
 	exitIfErr(entryLog, "building core client", err)
 
-	// tsClient is currently unused. Uncomment the following lines if needed in the future.
-	// tsClient, err := tsclient.NewForConfig(restConfig)
-	// exitIfErr(entryLog, "building templated-secret client", err)
-
 	saLoader := generator.NewServiceAccountLoader(satoken.NewManager(coreClient, log.WithName("template")))
 
 	// Set SecretTemplate's maximum exponential to reduce reconcile time for inputresource errors
@@ -232,8 +228,9 @@ func waitForCRDs(restConfig *rest.Config, entryLog logr.Logger) error {
 		return fmt.Errorf("unable to create API extensions client: %w", err)
 	}
 
-	return wait.PollImmediate(1*time.Second, 60*time.Second, func() (bool, error) {
-		_, err := apiExtClient.ApiextensionsV1().CustomResourceDefinitions().Get(context.TODO(), "secrettemplates.templatedsecret.starstreak.dev", metav1.GetOptions{})
+	// First check that the CRD exists and is established
+	err = wait.PollImmediate(1*time.Second, 60*time.Second, func() (bool, error) {
+		crd, err := apiExtClient.ApiextensionsV1().CustomResourceDefinitions().Get(context.TODO(), "secrettemplates.templatedsecret.starstreak.dev", metav1.GetOptions{})
 		if err != nil {
 			if apierrors.IsNotFound(err) {
 				entryLog.Info("SecretTemplate CRD not found, retrying...")
@@ -242,12 +239,7 @@ func waitForCRDs(restConfig *rest.Config, entryLog logr.Logger) error {
 			return false, err
 		}
 
-		// Also check that the CRD is established
-		crd, err := apiExtClient.ApiextensionsV1().CustomResourceDefinitions().Get(context.TODO(), "secrettemplates.templatedsecret.starstreak.dev", metav1.GetOptions{})
-		if err != nil {
-			return false, err
-		}
-
+		// Check that the CRD is established
 		for _, condition := range crd.Status.Conditions {
 			if condition.Type == apiextensionsv1.Established &&
 				condition.Status == apiextensionsv1.ConditionTrue {
@@ -257,6 +249,34 @@ func waitForCRDs(restConfig *rest.Config, entryLog logr.Logger) error {
 		}
 
 		entryLog.Info("SecretTemplate CRD found but not yet established, retrying...")
+		return false, nil
+	})
+
+	if err != nil {
+		return err
+	}
+
+	// Now verify that the API resource is actually discoverable
+	// This ensures the apiserver's discovery cache has been updated
+	discoveryClient := apiExtClient.Discovery()
+	entryLog.Info("Verifying API resource is discoverable")
+
+	return wait.PollImmediate(1*time.Second, 30*time.Second, func() (bool, error) {
+		resourceList, err := discoveryClient.ServerResourcesForGroupVersion("templatedsecret.starstreak.dev/v1alpha1")
+		if err != nil {
+			entryLog.Info("API resource not yet discoverable, waiting for API server discovery cache to refresh...",
+				"error", err.Error())
+			return false, nil
+		}
+
+		for _, r := range resourceList.APIResources {
+			if r.Kind == "SecretTemplate" {
+				entryLog.Info("SecretTemplate API resource is now discoverable")
+				return true, nil
+			}
+		}
+
+		entryLog.Info("SecretTemplate kind not found in API resources, waiting...")
 		return false, nil
 	})
 }

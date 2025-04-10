@@ -166,14 +166,6 @@ jobs:
             echo "" >> release-notes.md
             git log --pretty=format:"* %s" >> release-notes.md
           fi
-
-          # Add installation instructions
-          echo "" >> release-notes.md
-          echo "## Installation" >> release-notes.md
-          echo "" >> release-notes.md
-          echo "Install the controller with:" >> release-notes.md
-          echo '```shell' >> release-notes.md
-          echo "kubectl apply -f https://github.com/${{ github.repository }}/releases/download/${GITHUB_REF#refs/tags/}/templated-secret-controller-${GITHUB_REF#refs/tags/}.yaml" >> release-notes.md
           echo '```' >> release-notes.md
 
       - name: Create GitHub Release
