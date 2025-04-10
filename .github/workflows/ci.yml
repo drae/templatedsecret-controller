@@ -97,35 +97,23 @@ jobs:
           # Create namespace if it doesn't exist
           kubectl create namespace templated-secret-dev --dry-run=client -o yaml | kubectl apply -f -
 
-          # Generate manifests using kustomize but save them to a file instead of applying directly
-          kubectl kustomize config/kustomize/overlays/dev > manifests.yaml
+          # Apply the base kustomize configuration
+          kubectl kustomize config/kustomize/overlays/dev | kubectl apply -f -
           
-          # Modify the generated manifests to use the correct image before applying
-          sed -i "s|image: controller:latest|image: ${IMG}:${TAG}|g" manifests.yaml
-          sed -i 's|imagePullPolicy: Always|imagePullPolicy: IfNotPresent|g' manifests.yaml
+          # Update the deployed image to use the one we just built
+          kubectl set image -n templated-secret-dev deployment/templated-secret-controller controller=${IMG}:${TAG}
           
-          # Patch the args to match the working Helm chart (this might fix the crash)
-          # Replace the existing "--metrics-bind-address=:8080" arg with ":0" to disable metrics
-          sed -i 's|args:|args:\n            - --metrics-bind-address=0|g' manifests.yaml
-          sed -i 's|            - --metrics-bind-address=:8080|            - --metrics-bind-address=0|g' manifests.yaml
+          # Update the image pull policy
+          kubectl patch deployment -n templated-secret-dev templated-secret-controller --type=json \
+            -p='[{"op": "replace", "path": "/spec/template/spec/containers/0/imagePullPolicy", "value": "IfNotPresent"}]'
           
-          # Remove the readiness probe if metrics are disabled
-          sed -i '/readinessProbe:/,/periodSeconds:/d' manifests.yaml
+          # Disable metrics to match Helm configuration by updating the args
+          kubectl patch deployment -n templated-secret-dev templated-secret-controller --type=json \
+            -p='[{"op": "replace", "path": "/spec/template/spec/containers/0/args/0", "value": "--metrics-bind-address=0"}]'
           
-          # Print the resulting manifest for debugging
-          echo "=== Generated deployment manifest (modified) ==="
-          grep -A 50 "kind: Deployment" manifests.yaml | grep -v "^--" 
-          
-          # Compare with a successful helm-generated manifest 
-          echo "=== Helm-generated deployment manifest (for comparison) ==="
-          helm template templated-secret-controller charts/templated-secret-controller \
-            --set image.repository=${IMG} \
-            --set image.tag=${TAG} \
-            --set image.pullPolicy=IfNotPresent \
-            --set metrics.enabled=false | grep -A 50 "kind: Deployment" | grep -v "^--"
-          
-          # Apply the modified manifests in a single operation
-          kubectl apply -f manifests.yaml
+          # Remove the readiness probe since metrics are disabled
+          kubectl patch deployment -n templated-secret-dev templated-secret-controller --type=json \
+            -p='[{"op": "remove", "path": "/spec/template/spec/containers/0/readinessProbe"}]'
           
           # Short pause to let the pod start creating
           sleep 5
