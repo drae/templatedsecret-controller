@@ -17,6 +17,8 @@ jobs:
     runs-on: ubuntu-latest
     env:
       COSIGN_EXPERIMENTAL: "true"
+    outputs:
+      image-digest: ${{ steps.build-push.outputs.digest }}
     steps:
       - name: Checkout code
         uses: actions/checkout@v4
@@ -57,7 +59,32 @@ jobs:
 
   vulnerability-scan:
     name: Vulnerability Scan
-    needs: goreleaser
+    needs: build-and-push-image
+    runs-on: ubuntu-latest
+    permissions:
+      security-events: write
+    steps:
+      - name: Install Grype
+        uses: anchore/scan-action/download-grype@v6.1.0
+        id: install-grype
+
+      - name: Scan Image for Vulnerabilities
+        uses: anchore/scan-action@v6.1.0
+        id: scan
+        with:
+          image: "ghcr.io/${{ github.repository }}@${{ needs.build-and-push-image.outputs.image-digest }}"
+          fail-build: false
+          severity-cutoff: critical
+
+      - name: Upload Vulnerability Report
+        uses: github/codeql-action/upload-sarif@v3
+        with:
+          sarif_file: ${{ steps.scan.outputs.sarif }}
+          category: container-scan
+
+  generate-release-artifacts:
+    name: Generate Release Artifacts
+    needs: [build-and-push-image, vulnerability-scan]
     runs-on: ubuntu-latest
     permissions:
       security-events: write
@@ -72,15 +99,16 @@ jobs:
       - name: Install Grype
         uses: anchore/scan-action/download-grype@v6.1.0
         id: install-grype
-
-      - name: Scan Image for Vulnerabilities
-        uses: anchore/scan-action@v6.1.0
-        id: scan
-        with:
-          image: ${{ steps.image-ref.outputs.image }}
-          fail-build: false
-          severity-cutoff: critical
-
+          if [ -n "$PREV_TAG" ]; then
+            echo "## Changes since ${PREV_TAG}" > release-notes.md
+            echo "" >> release-notes.md
+            git log --pretty=format:"* %s" ${PREV_TAG}..HEAD >> release-notes.md
+          else
+            echo "## Initial release" > release-notes.md
+            echo "" >> release-notes.md
+            git log --pretty=format:"* %s" >> release-notes.md
+          fi
+          echo '```' >> release-notes.md
       - name: Upload Vulnerability Report
         uses: github/codeql-action/upload-sarif@v3
         with:

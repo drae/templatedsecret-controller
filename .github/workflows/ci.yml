@@ -179,3 +179,248 @@ jobs:
         run: |
           mkdir -p tmp
           NAMESPACE=templated-secret-dev ./hack/ci.sh
+
+  test-helm-chart:
+    name: Helm chart validation and testing
+    runs-on: ubuntu-latest
+    steps:
+      - name: Create k8s Kind Cluster
+        uses: helm/kind-action@v1
+        with:
+          cluster_name: kinder
+
+      - name: Check out code into the Go module directory
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
+      # Set the TAG based on git describe if possible
+      - name: Set TAG env
+        run: |
+          echo "TAG=$(git describe --tags --always --dirty 2>/dev/null || echo "dev")" >> $GITHUB_ENV
+
+      - name: Set up go
+        uses: actions/setup-go@v5
+        with:
+          go-version-file: go.mod
+          cache: true
+
+      # Install Helm
+      - name: Set up Helm
+        uses: azure/setup-helm@v3
+        with:
+          version: "latest"
+
+      # Set up Docker BuildX with a builder that supports multi-platform builds
+      - name: Set up Docker Buildx
+        uses: docker/setup-buildx-action@v3
+        with:
+          install: true
+          driver-opts: image=moby/buildkit:buildx-stable-1
+
+      - name: Build controller image
+        run: |
+          # Build the image and load it into the local docker daemon
+          docker buildx build --platform=linux/amd64 \
+            --load \
+            --build-arg SGCTRL_VER=${TAG} \
+            -t ${IMG}:${TAG} .
+
+          # Verify the image exists locally
+          docker images ${IMG}:${TAG}
+
+      - name: Load image to Kind and verify
+        run: |
+          # Load the image into Kind with retry mechanism
+          for i in {1..3}; do
+            echo "Attempt $i: Loading image into Kind cluster..."
+            kind load docker-image --name kinder ${IMG}:${TAG} && break
+            if [ $i -eq 3 ]; then
+              echo "Failed to load image after 3 attempts"
+              exit 1
+            fi
+            echo "Retrying in 5 seconds..."
+            sleep 5
+          done
+
+          # Verify the image is available in Kind
+          echo "Verifying image is available in Kind cluster..."
+          NODES=$(kind get nodes --name kinder)
+          for node in $NODES; do
+            echo "Checking node: $node"
+            docker exec $node crictl images | grep ${IMG}
+          done
+
+      - name: Validate Helm chart
+        run: |
+          # Lint the Helm chart
+          echo "Linting Helm chart..."
+          helm lint charts/templated-secret-controller
+
+          # Validate the chart's template rendering
+          echo "Validating Helm chart templates..."
+          helm template templated-secret-controller charts/templated-secret-controller \
+            --set image.repository=${IMG} \
+            --set image.tag=${TAG} \
+            --set image.pullPolicy=IfNotPresent \
+            --namespace templated-secret-helm
+
+      - name: Deploy Helm chart
+        run: |
+          # Create namespace if it doesn't exist
+          kubectl create namespace templated-secret-helm --dry-run=client -o yaml | kubectl apply -f -
+
+          # Install the Helm chart
+          echo "Installing Helm chart..."
+          helm install templated-secret-controller charts/templated-secret-controller \
+            --set image.repository=${IMG} \
+            --set image.tag=${TAG} \
+            --set image.pullPolicy=IfNotPresent \
+            --namespace templated-secret-helm
+
+          echo "=== Initial resources after Helm installation ==="
+          kubectl -n templated-secret-helm get all
+
+      - name: Wait for Helm chart deployment
+        run: |
+          echo "Waiting for Helm-deployed controller to be ready..."
+
+          # Function to check deployment status with detailed diagnostics
+          check_deployment() {
+            echo "--- Checking deployment status ---"
+            kubectl -n templated-secret-helm get deployment -l app.kubernetes.io/name=templated-secret-controller -o wide
+            
+            echo "--- Checking pod status ---"
+            kubectl -n templated-secret-helm get pods -o wide
+            
+            # Check for any pod events that might indicate issues
+            echo "--- Recent pod events ---"
+            PODS=$(kubectl -n templated-secret-helm get pods -l app.kubernetes.io/name=templated-secret-controller -o name)
+            for pod in $PODS; do
+              echo "Events for $pod:"
+              kubectl -n templated-secret-helm describe $pod | grep -A 10 Events:
+            done
+            
+            # Check if deployment is available
+            AVAILABLE=$(kubectl -n templated-secret-helm get deployment -l app.kubernetes.io/name=templated-secret-controller -o jsonpath='{.items[0].status.availableReplicas}')
+            if [ "$AVAILABLE" == "1" ]; then
+              return 0
+            else
+              return 1
+            fi
+          }
+
+          # Implement a polling approach with backoff
+          MAX_ATTEMPTS=10
+          ATTEMPT=1
+          WAIT_TIME=10
+
+          while [ $ATTEMPT -le $MAX_ATTEMPTS ]; do
+            echo "Attempt $ATTEMPT of $MAX_ATTEMPTS (waiting ${WAIT_TIME}s between attempts)"
+            
+            if check_deployment; then
+              echo "✅ Helm-deployed controller is ready!"
+              break
+            fi
+            
+            if [ $ATTEMPT -eq $MAX_ATTEMPTS ]; then
+              echo "❌ Timed out waiting for Helm deployment to be ready"
+              
+              # Even if we time out, let's see if we can get logs from any pods that might exist
+              echo "--- Controller logs (if available) ---"
+              PODS=$(kubectl -n templated-secret-helm get pods -l app.kubernetes.io/name=templated-secret-controller -o name 2>/dev/null || echo "")
+              if [ -n "$PODS" ]; then
+                for pod in $PODS; do
+                  echo "Logs from $pod:"
+                  kubectl -n templated-secret-helm logs $pod --tail=50 || echo "Could not retrieve logs"
+                done
+              fi
+              
+              exit 1
+            else
+              echo "Waiting ${WAIT_TIME} seconds before next attempt..."
+              sleep $WAIT_TIME
+              # Increase wait time for next attempt (backoff strategy)
+              WAIT_TIME=$((WAIT_TIME + 5))
+              ATTEMPT=$((ATTEMPT + 1))
+            fi
+          done
+
+      - name: Verify CRD installation
+        run: |
+          # Verify that CRDs were installed by the Helm chart
+          echo "Verifying CRD installation..."
+          kubectl get crd secrettemplates.templatedsecret.starstreak.dev
+
+          # Verify the CRD is established
+          established=$(kubectl get crd secrettemplates.templatedsecret.starstreak.dev -o jsonpath='{.status.conditions[?(@.type=="Established")].status}')
+          if [ "$established" != "True" ]; then
+            echo "❌ CRD is not established"
+            exit 1
+          fi
+          echo "✅ CRD is properly established"
+
+      - name: Test Helm chart functionality
+        run: |
+          echo "Testing functionality of Helm-deployed controller..."
+
+          # Create a test SecretTemplate
+          cat <<EOF | kubectl apply -f - -n templated-secret-helm
+          apiVersion: v1
+          kind: Secret
+          metadata:
+            name: source-secret
+            namespace: templated-secret-helm
+          type: Opaque
+          data:
+            username: $(echo -n "admin" | base64)
+            password: $(echo -n "s3cr3t" | base64)
+          ---
+          apiVersion: templatedsecret.starstreak.dev/v1alpha1
+          kind: SecretTemplate
+          metadata:
+            name: test-templated-secret
+            namespace: templated-secret-helm
+          spec:
+            inputResources:
+              - name: inputsecret
+                ref:
+                  apiVersion: v1
+                  kind: Secret
+                  name: source-secret
+            template:
+              type: Opaque
+              data:
+                username: \$(.inputsecret.data.username)
+                password: \$(.inputsecret.data.password)
+          EOF
+
+          # Wait for the secret to be created
+          echo "Waiting for templated secret to be created..."
+          for i in {1..30}; do
+            if kubectl get secret -n templated-secret-helm test-templated-secret &>/dev/null; then
+              echo "✅ Templated secret was successfully created"
+              
+              # Verify secret has expected data
+              username=$(kubectl get secret -n templated-secret-helm test-templated-secret -o jsonpath='{.data.username}' | base64 -d)
+              if [ "$username" == "admin" ]; then
+                echo "✅ Secret has expected content"
+                exit 0
+              else
+                echo "❌ Secret content validation failed"
+                exit 1
+              fi
+            fi
+            
+            echo "Waiting for secret to be created (attempt $i)..."
+            sleep 2
+          done
+
+          echo "❌ Timed out waiting for templated secret to be created"
+
+          # Show controller logs for debugging
+          echo "--- Controller logs ---"
+          POD=$(kubectl get pod -n templated-secret-helm -l app.kubernetes.io/name=templated-secret-controller -o name | head -1)
+          kubectl logs -n templated-secret-helm $POD --tail=100
+
+          exit 1

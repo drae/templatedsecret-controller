@@ -1,0 +1,38 @@
+Thank you for installing {{ .Chart.Name }}.
+
+Your templated-secret-controller has been deployed with the following configuration:
+{{- if .Values.metrics.enabled }}
+- Metrics are ENABLED and can be accessed via the {{ include "templated-secret-controller.fullname" . }}-metrics service on port {{ .Values.metrics.service.port }}
+{{- else }}
+- Metrics are DISABLED
+{{- end }}
+
+{{- if .Values.crds.create }}
+- CRDs have been installed automatically
+{{- else }}
+- CRDs were NOT installed by this chart (you should have installed them separately)
+{{- end }}
+
+To create a new templated secret, create a SecretTemplate custom resource:
+
+```yaml
+apiVersion: templatedsecret.starstreak.dev/v1alpha1
+kind: SecretTemplate
+metadata:
+  name: example-templated-secret
+spec:
+  inputResources:
+    - name: inputsecret
+      ref:
+        apiVersion: v1
+        kind: Secret
+        name: source-secret
+  template:
+    type: Opaque
+    data:
+      username: $(.inputsecret.data.username)
+      password: $(.inputsecret.data.password)
+```
+
+For more information, please refer to the documentation at:
+https://github.com/drae/templated-secret-controller/tree/main/docs
