@@ -43,6 +43,9 @@ spec:
             {{- else }}
             - --metrics-bind-address=0
             {{- end }}
+            {{- if .Values.namespace }}
+            - --namespace={{ .Values.namespace }}
+            {{- end }}
           {{- if .Values.metrics.enabled }}
           readinessProbe:
             httpGet:
@@ -50,6 +53,13 @@ spec:
               port: 8080
             initialDelaySeconds: 5
             periodSeconds: 10
+          livenessProbe:
+            httpGet:
+              path: /metrics
+              port: 8080
+            initialDelaySeconds: 15
+            periodSeconds: 20
+            timeoutSeconds: 5
           {{- end }}
           resources:
             {{- toYaml .Values.resources | nindent 12 }}

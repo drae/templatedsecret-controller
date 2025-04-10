@@ -27,7 +27,7 @@ fullnameOverride: ""
 
 imagePullSecrets: []
 
-# Metrics configuration - SUPPORTED
+# Metrics configuration - SUPPORTED by controller via --metrics-bind-address flag
 metrics:
   # Enable or disable metrics
   enabled: true
@@ -36,6 +36,11 @@ metrics:
     port: 8080
   # Configure the metrics endpoint
   bindAddress: ":8080"
+
+# Namespace configuration - SUPPORTED by controller via --namespace flag
+# The controller will only watch resources in this namespace
+# If not specified, the controller watches all namespaces
+namespace: ""
 
 nameOverride: ""
 
@@ -89,3 +94,11 @@ serviceMonitor:
   relabelings: []
 
 tolerations: []
+# The following settings are documented in the README.md but NOT IMPLEMENTED in the controller:
+# - logLevel (no controller flag support)
+# - leaderElection (no controller support for --leader-elect or similar)
+# - secretManagement.reconciliationInterval and maxSecretAge (no controller support)
+# - watchNamespaces.namespaces (controller only supports single --namespace flag)
+# - podDisruptionBudget (pure Kubernetes feature, can be implemented if replicaCount > 1)
+# - autoscaling (pure Kubernetes feature, can be implemented)
+# - webhooks (controller does not implement validation webhooks)

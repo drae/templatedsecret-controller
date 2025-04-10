@@ -32,7 +32,7 @@ import (
 )
 
 const (
-	syncPeriod = 30 * time.Second
+	defaultSyncPeriod = 30 * time.Second
 )
 
 // ClientLoader allows Kubernetes Clients to be loaded from a Service Account.
@@ -54,6 +54,10 @@ type SecretTemplateReconciler struct {
 	saLoader      ClientLoader
 	secretTracker Tracker
 	log           logr.Logger
+
+	// Reconciliation settings
+	reconciliationInterval time.Duration
+	maxSecretAge           time.Duration
 }
 
 var (
@@ -63,7 +67,29 @@ var (
 
 // NewSecretTemplateReconciler create a new SecretTemplate Reconciler
 func NewSecretTemplateReconciler(mgr manager.Manager, client client.Client, loader ClientLoader, secretTracker Tracker, log logr.Logger) *SecretTemplateReconciler {
-	return &SecretTemplateReconciler{mgr, client, loader, secretTracker, log}
+	return &SecretTemplateReconciler{
+		mgr:                    mgr,
+		client:                 client,
+		saLoader:               loader,
+		secretTracker:          secretTracker,
+		log:                    log,
+		reconciliationInterval: defaultSyncPeriod,
+		maxSecretAge:           720 * time.Hour, // Default to 30 days
+	}
+}
+
+// SetReconciliationSettings configures the reconciliation interval and max secret age
+func (r *SecretTemplateReconciler) SetReconciliationSettings(interval, maxAge time.Duration) {
+	if interval > 0 {
+		r.reconciliationInterval = interval
+	}
+	if maxAge > 0 {
+		r.maxSecretAge = maxAge
+	}
+
+	r.log.Info("Reconciliation settings configured",
+		"interval", r.reconciliationInterval.String(),
+		"maxSecretAge", r.maxSecretAge.String())
 }
 
 // AttachWatches adds and starts watches this reconciler requires.
@@ -156,14 +182,36 @@ func (r *SecretTemplateReconciler) Reconcile(ctx context.Context, request reconc
 }
 
 func (r *SecretTemplateReconciler) reconcile(ctx context.Context, secretTemplate *tsv1alpha1.SecretTemplate) (reconcile.Result, error) {
+	// Check if there is an existing secret that's too old and needs regeneration
+	existingSecret := &corev1.Secret{}
+	secretKey := types.NamespacedName{
+		Namespace: secretTemplate.Namespace,
+		Name:      secretTemplate.Name,
+	}
+
+	forceRegeneration := false
+	if err := r.client.Get(ctx, secretKey, existingSecret); err == nil {
+		// Secret exists, check its age
+		if r.maxSecretAge > 0 && !existingSecret.CreationTimestamp.IsZero() {
+			age := time.Since(existingSecret.CreationTimestamp.Time)
+			if age > r.maxSecretAge {
+				r.log.Info("Secret has exceeded maximum age, forcing regeneration",
+					"secret", existingSecret.Name,
+					"age", age.String(),
+					"maxAge", r.maxSecretAge.String())
+				forceRegeneration = true
+			}
+		}
+	} else if !errors.IsNotFound(err) {
+		// Only return if it's not a NotFound error
+		return reconcile.Result{}, err
+	}
+
 	// Resolve input resources
 	inputResources, err := r.resolveInputResources(ctx, secretTemplate)
 	if err != nil {
 		return reconcile.Result{}, err
 	}
-
-	// Debug print of inputResources structure
-	//	debugInputResources(inputResources)
 
 	evaluatedTemplateSecret, err := evaluateTemplate(secretTemplate.Spec.JSONPathTemplate, inputResources)
 	if err != nil {
@@ -182,7 +230,13 @@ func (r *SecretTemplateReconciler) reconcile(ctx context.Context, secretTemplate
 		},
 	}
 
-	if _, err = controllerutil.CreateOrUpdate(ctx, r.client, &secret, func() error {
+	result, err := controllerutil.CreateOrUpdate(ctx, r.client, &secret, func() error {
+		// If we need to force regeneration due to age, we need to clear the secret data first
+		if forceRegeneration {
+			secret.Data = nil
+			secret.StringData = nil
+		}
+
 		secret.Data = evaluatedTemplateSecret.Data
 		secret.StringData = evaluatedTemplateSecret.StringData
 		secret.ObjectMeta.Annotations = evaluatedTemplateSecret.Annotations
@@ -206,15 +260,29 @@ func (r *SecretTemplateReconciler) reconcile(ctx context.Context, secretTemplate
 		}
 
 		return controllerutil.SetControllerReference(secretTemplate, &secret, scheme.Scheme)
-	}); err != nil {
+	})
+
+	if err != nil {
 		return reconcile.Result{}, fmt.Errorf("creating/updating secret: %w", err)
+	}
+
+	// Log the result of the create/update operation
+	if result == controllerutil.OperationResultCreated {
+		r.log.Info("Secret created successfully", "secret", secret.Name)
+	} else if result == controllerutil.OperationResultUpdated {
+		r.log.Info("Secret updated successfully", "secret", secret.Name)
 	}
 
 	secretTemplate.Status.Secret.Name = secret.Name
 
-	// If not tracking input resources, periodically requeue
+	// If not tracking input resources, periodically requeue using configured interval
 	if !shouldTrackInputResources(secretTemplate) {
-		return reconcile.Result{RequeueAfter: syncPeriod}, nil
+		return reconcile.Result{RequeueAfter: r.reconciliationInterval}, nil
+	}
+
+	// Always check for age-based regeneration even if tracking resources
+	if r.maxSecretAge > 0 {
+		return reconcile.Result{RequeueAfter: r.reconciliationInterval}, nil
 	}
 
 	return reconcile.Result{}, nil
