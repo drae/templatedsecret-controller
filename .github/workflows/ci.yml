@@ -67,7 +67,7 @@ jobs:
           for i in {1..3}; do
             echo "Attempt $i: Loading image into Kind cluster..."
             kind load docker-image --name kinder ${IMG}:${TAG} && break
-            if [ $i -eq 3 ]; then
+            if [ $i -eq 3]; then
               echo "Failed to load image after 3 attempts"
               exit 1
             fi
@@ -104,11 +104,57 @@ jobs:
           sed -i "s|image: controller:latest|image: ${IMG}:${TAG}|g" manifests.yaml
           sed -i 's|imagePullPolicy: Always|imagePullPolicy: IfNotPresent|g' manifests.yaml
           
+          # Patch the args to match the working Helm chart (this might fix the crash)
+          # Replace the existing "--metrics-bind-address=:8080" arg with ":0" to disable metrics
+          sed -i 's|args:|args:\n            - --metrics-bind-address=0|g' manifests.yaml
+          sed -i 's|            - --metrics-bind-address=:8080|            - --metrics-bind-address=0|g' manifests.yaml
+          
+          # Remove the readiness probe if metrics are disabled
+          sed -i '/readinessProbe:/,/periodSeconds:/d' manifests.yaml
+          
+          # Print the resulting manifest for debugging
+          echo "=== Generated deployment manifest (modified) ==="
+          grep -A 50 "kind: Deployment" manifests.yaml | grep -v "^--" 
+          
+          # Compare with a successful helm-generated manifest 
+          echo "=== Helm-generated deployment manifest (for comparison) ==="
+          helm template templated-secret-controller charts/templated-secret-controller \
+            --set image.repository=${IMG} \
+            --set image.tag=${TAG} \
+            --set image.pullPolicy=IfNotPresent \
+            --set metrics.enabled=false | grep -A 50 "kind: Deployment" | grep -v "^--"
+          
           # Apply the modified manifests in a single operation
           kubectl apply -f manifests.yaml
-
+          
+          # Short pause to let the pod start creating
+          sleep 5
+          
           echo "=== Initial pod status after deployment ==="
-          kubectl -n templated-secret-dev get pods
+          kubectl -n templated-secret-dev get pods -o wide
+          
+          # Capture immediate pod events for troubleshooting
+          echo "=== Initial pod events ==="
+          PODS=$(kubectl -n templated-secret-dev get pods -o name)
+          for pod in $PODS; do
+            echo "Events for $pod:"
+            kubectl -n templated-secret-dev describe $pod | grep -A 15 Events:
+          done
+          
+          # Try to get quick logs if pod started but might be crashing
+          echo "=== Initial container logs (if available) ==="
+          for pod in $PODS; do
+            echo "Logs from $pod:"
+            kubectl -n templated-secret-dev logs $pod --all-containers --tail=20 || echo "No logs available yet"
+            
+            # Also check previous container logs if it's restarting
+            echo "Previous logs from $pod (if restarting):"
+            kubectl -n templated-secret-dev logs $pod --all-containers --previous --tail=20 || echo "No previous logs available"
+            
+            # Get container startup command and environment
+            echo "=== Container details for $pod ==="
+            kubectl -n templated-secret-dev describe pod $pod | grep -A 15 "Container ID:"
+          done
 
       - name: Wait for controller deployment
         run: |
@@ -152,7 +198,7 @@ jobs:
               break
             fi
             
-            if [ $ATTEMPT -eq $MAX_ATTEMPTS ]; then
+            if [ $ATTEMPT -eq $MAX_ATTEMPTS]; then
               echo "❌ Timed out waiting for deployment to be ready"
               
               # Even if we time out, let's see if we can get logs from any pods that might exist
@@ -327,7 +373,7 @@ jobs:
               break
             fi
             
-            if [ $ATTEMPT -eq $MAX_ATTEMPTS ]; then
+            if [ $ATTEMPT -eq $MAX_ATTEMPTS]; then
               echo "❌ Timed out waiting for Helm deployment to be ready"
               
               # Even if we time out, let's see if we can get logs from any pods that might exist
