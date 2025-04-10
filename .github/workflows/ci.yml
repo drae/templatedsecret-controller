@@ -115,6 +115,10 @@ jobs:
           kubectl patch deployment -n templated-secret-dev templated-secret-controller --type=json \
             -p='[{"op": "remove", "path": "/spec/template/spec/containers/0/readinessProbe"}]'
           
+          # Fix the namespace in the ClusterRoleBinding
+          kubectl patch clusterrolebinding templated-secret-controller --type=json \
+            -p='[{"op": "replace", "path": "/subjects/0/namespace", "value": "templated-secret-dev"}]'
+          
           # Short pause to let the pod start creating
           sleep 5
           
