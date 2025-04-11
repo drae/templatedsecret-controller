@@ -6,6 +6,7 @@ project_name: templated-secret-controller
 before:
   hooks:
     - go mod tidy
+    - go mod vendor
     - go test ./pkg/... -test.v
 
 builds:
