@@ -1,2 +1,0 @@
-e13c9673948ddc3e3ad2e78cd85c3c1d94c9293ee77cf07450531df3c6e27fad  templated-secret-controller_Linux_arm64.tar.gz
-e2ecc315dcc6101c80ace5b902deae5d71d04b1a155318eb4ff2e53d071bed6d  templated-secret-controller_Linux_x86_64.tar.gz
