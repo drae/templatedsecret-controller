@@ -18,6 +18,8 @@ builds:
       - arm64
     ldflags:
       - -s -w
+      - -X github.com/{{.Env.REPOSITORY_OWNER}}/{{.Env.REPOSITORY_NAME}}/cmd/controller.Version={{.Version}}
+      - -X github.com/{{.Env.REPOSITORY_OWNER}}/{{.Env.REPOSITORY_NAME}}/cmd/controller.Commit={{.Commit}}
     main: ./cmd/controller/main.go
 
 dockers:
@@ -37,6 +39,9 @@ dockers:
       - go.sum
       - cmd/
       - pkg/
+    goos: linux
+    goarch: amd64
+    skip_push: false
 
 signs:
   - cmd: cosign
