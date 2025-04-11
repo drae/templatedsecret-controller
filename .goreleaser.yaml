@@ -16,6 +16,7 @@ builds:
     goarch:
       - amd64
       - arm64
+      - arm
     goarm:
       - "6"
       - "7"
@@ -25,12 +26,16 @@ builds:
       - -s
       - -w
       - -X github.com/{{.Env.REPOSITORY_OWNER}}/{{.Env.REPOSITORY_NAME}}/cmd/controller.Version={{.Version}}
+      - -X github.com/{{.Env.REPOSITORY_OWNER}}/{{.Env.REPOSITORY_NAME}}/cmd/controller.VersionSuffix={{ if .Prerelease }}-{{ .Prerelease }}{{ else }}{{ if .IsSnapshot }}-{{ .Branch }}{{ end }}{{ end }}
       - -X github.com/{{.Env.REPOSITORY_OWNER}}/{{.Env.REPOSITORY_NAME}}/cmd/controller.Commit={{.Commit}}
     main: ./cmd/controller/main.go
 
 dockers:
   # AMD64 Docker build
-  - image_templates:
+  - id: templated-secret-controller-linux-amd64
+    ids:
+      - templated-secret-controller
+    image_templates:
       - "ghcr.io/{{.Env.REPOSITORY_OWNER}}/{{.Env.REPOSITORY_NAME}}:{{ .Version }}-amd64"
     dockerfile: Dockerfile
     use: buildx
@@ -45,7 +50,10 @@ dockers:
     skip_push: auto
 
   # ARM64 Docker build
-  - image_templates:
+  - id: templated-secret-controller-linux-arm64
+    ids:
+      - templated-secret-controller
+    image_templates:
       - "ghcr.io/{{.Env.REPOSITORY_OWNER}}/{{.Env.REPOSITORY_NAME}}:{{ .Version }}-arm64"
     dockerfile: Dockerfile
     use: buildx
@@ -60,8 +68,11 @@ dockers:
     skip_push: auto
 
   # ARM v6 (32-bit) Docker build
-  - image_templates:
-      - "ghcr.io/{{.Env.REPOSITORY_OWNER}}/{{.Env.REPOSITORY_NAME}}:{{ .Version }}-arm"
+  - id: templated-secret-controller-linux-armv6
+    ids:
+      - templated-secret-controller
+    image_templates:
+      - "ghcr.io/{{.Env.REPOSITORY_OWNER}}/{{.Env.REPOSITORY_NAME}}:{{ .Version }}-armv6"
     dockerfile: Dockerfile
     use: buildx
     build_flag_templates:
@@ -76,8 +87,11 @@ dockers:
     skip_push: auto
 
   # ARM v7(32-bit) Docker build
-  - image_templates:
-      - "ghcr.io/{{.Env.REPOSITORY_OWNER}}/{{.Env.REPOSITORY_NAME}}:{{ .Version }}-arm"
+  - id: templated-secret-controller-linux-armv7
+    ids:
+      - templated-secret-controller
+    image_templates:
+      - "ghcr.io/{{.Env.REPOSITORY_OWNER}}/{{.Env.REPOSITORY_NAME}}:{{ .Version }}-armv7"
     dockerfile: Dockerfile
     use: buildx
     build_flag_templates:
@@ -123,6 +137,8 @@ archives:
       {{- title .Os }}_
       {{- if eq .Arch "amd64" }}x86_64
       {{- else if eq .Arch "386" }}i386
+      {{- else if eq .Arm "6"}}armv6
+      {{- else if eq .Arm "7"}}armv7
       {{- else }}{{ .Arch }}{{ end }}
     files:
       - LICENSE
