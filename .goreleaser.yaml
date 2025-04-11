@@ -80,4 +80,8 @@ release:
   github:
     owner: "{{.Env.REPOSITORY_OWNER}}"
     name: "{{.Env.REPOSITORY_NAME}}"
-  gitignore: true  # Will use .gitignore to determine which files to ignore when checking for dirty state
+  # Use the proper way to exclude files from the release
+  # The 'ignore' property isn't supported, but we can configure which files to include
+  extra_files:
+    - glob: "!**/.git/**"
+    - glob: "!**/.gitignore"
