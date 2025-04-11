@@ -16,20 +16,23 @@ builds:
     goarch:
       - amd64
       - arm64
+    goarm:
+      - "6"
+      - "7"
     ldflags:
-      - -s -w
+      - -s
+      - -w
       - -X github.com/{{.Env.REPOSITORY_OWNER}}/{{.Env.REPOSITORY_NAME}}/cmd/controller.Version={{.Version}}
       - -X github.com/{{.Env.REPOSITORY_OWNER}}/{{.Env.REPOSITORY_NAME}}/cmd/controller.Commit={{.Commit}}
     main: ./cmd/controller/main.go
 
 dockers:
+  # AMD64 Docker build
   - image_templates:
-      - "ghcr.io/{{.Env.REPOSITORY_OWNER}}/{{.Env.REPOSITORY_NAME}}:{{ .Version }}"
-      - "ghcr.io/{{.Env.REPOSITORY_OWNER}}/{{.Env.REPOSITORY_NAME}}:latest"
+      - "ghcr.io/{{.Env.REPOSITORY_OWNER}}/{{.Env.REPOSITORY_NAME}}:{{ .Version }}-amd64"
     dockerfile: Dockerfile
     use: buildx
     build_flag_templates:
-      - "--platform=linux/amd64,linux/arm64"
       - "--label=org.opencontainers.image.created={{.Date}}"
       - "--label=org.opencontainers.image.title={{.ProjectName}}"
       - "--label=org.opencontainers.image.revision={{.FullCommit}}"
@@ -41,7 +44,78 @@ dockers:
       - pkg/
     goos: linux
     goarch: amd64
-    skip_push: false
+    skip_push: auto
+
+  # ARM64 Docker build
+  - image_templates:
+      - "ghcr.io/{{.Env.REPOSITORY_OWNER}}/{{.Env.REPOSITORY_NAME}}:{{ .Version }}-arm64"
+    dockerfile: Dockerfile
+    use: buildx
+    build_flag_templates:
+      - "--label=org.opencontainers.image.created={{.Date}}"
+      - "--label=org.opencontainers.image.title={{.ProjectName}}"
+      - "--label=org.opencontainers.image.revision={{.FullCommit}}"
+      - "--label=org.opencontainers.image.version={{.Version}}"
+    extra_files:
+      - go.mod
+      - go.sum
+      - cmd/
+      - pkg/
+    goos: linux
+    goarch: arm64
+    skip_push: auto
+
+  # ARM v6 (32-bit) Docker build
+  - image_templates:
+      - "ghcr.io/{{.Env.REPOSITORY_OWNER}}/{{.Env.REPOSITORY_NAME}}:{{ .Version }}-arm"
+    dockerfile: Dockerfile
+    use: buildx
+    build_flag_templates:
+      - "--label=org.opencontainers.image.created={{.Date}}"
+      - "--label=org.opencontainers.image.title={{.ProjectName}}"
+      - "--label=org.opencontainers.image.revision={{.FullCommit}}"
+      - "--label=org.opencontainers.image.version={{.Version}}"
+    extra_files:
+      - go.mod
+      - go.sum
+      - cmd/
+      - pkg/
+    goos: linux
+    goarch: arm
+    goarm: 6
+    skip_push: auto
+
+  # ARM v7(32-bit) Docker build
+  - image_templates:
+      - "ghcr.io/{{.Env.REPOSITORY_OWNER}}/{{.Env.REPOSITORY_NAME}}:{{ .Version }}-arm"
+    dockerfile: Dockerfile
+    use: buildx
+    build_flag_templates:
+      - "--label=org.opencontainers.image.created={{.Date}}"
+      - "--label=org.opencontainers.image.title={{.ProjectName}}"
+      - "--label=org.opencontainers.image.revision={{.FullCommit}}"
+      - "--label=org.opencontainers.image.version={{.Version}}"
+    extra_files:
+      - go.mod
+      - go.sum
+      - cmd/
+      - pkg/
+    goos: linux
+    goarch: arm
+    goarm: 7
+    skip_push: auto
+
+docker_manifests:
+  - name_template: "ghcr.io/{{.Env.REPOSITORY_OWNER}}/{{.Env.REPOSITORY_NAME}}:{{ .Version }}"
+    image_templates:
+      - "ghcr.io/{{.Env.REPOSITORY_OWNER}}/{{.Env.REPOSITORY_NAME}}:{{ .Version }}-amd64"
+      - "ghcr.io/{{.Env.REPOSITORY_OWNER}}/{{.Env.REPOSITORY_NAME}}:{{ .Version }}-arm64"
+      - "ghcr.io/{{.Env.REPOSITORY_OWNER}}/{{.Env.REPOSITORY_NAME}}:{{ .Version }}-arm"
+  - name_template: "ghcr.io/{{.Env.REPOSITORY_OWNER}}/{{.Env.REPOSITORY_NAME}}:latest"
+    image_templates:
+      - "ghcr.io/{{.Env.REPOSITORY_OWNER}}/{{.Env.REPOSITORY_NAME}}:{{ .Version }}-amd64"
+      - "ghcr.io/{{.Env.REPOSITORY_OWNER}}/{{.Env.REPOSITORY_NAME}}:{{ .Version }}-arm64"
+      - "ghcr.io/{{.Env.REPOSITORY_OWNER}}/{{.Env.REPOSITORY_NAME}}:{{ .Version }}-arm"
 
 signs:
   - cmd: cosign
