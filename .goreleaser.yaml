@@ -18,9 +18,6 @@ builds:
       - arm64
     ldflags:
       - -s -w
-      - -X github.com/{{.Env.REPOSITORY_OWNER}}/{{.Env.REPOSITORY_NAME}}/internal/version.Version={{.Version}}
-      - -X github.com/{{.Env.REPOSITORY_OWNER}}/{{.Env.REPOSITORY_NAME}}/internal/version.Commit={{.Commit}}
-      - -X github.com/{{.Env.REPOSITORY_OWNER}}/{{.Env.REPOSITORY_NAME}}/internal/version.Date={{.Date}}
     main: ./cmd/controller/main.go
 
 dockers:
@@ -40,7 +37,6 @@ dockers:
       - go.sum
       - cmd/
       - pkg/
-      - internal/
 
 signs:
   - cmd: cosign
