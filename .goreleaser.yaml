@@ -26,7 +26,7 @@ builds:
 dockers:
   - image_templates:
       - "ghcr.io/{{.Env.REPOSITORY_OWNER}}/{{.Env.REPOSITORY_NAME}}:{{ .Version }}"
-      - "ghcr.io/{{.Env.REPOSITORY_NAME}}/{{.Env.REPOSITORY_NAME}}:latest"
+      - "ghcr.io/{{.Env.REPOSITORY_OWNER}}/{{.Env.REPOSITORY_NAME}}:latest"
     dockerfile: Dockerfile
     use: buildx
     build_flag_templates:
@@ -44,11 +44,10 @@ dockers:
 
 signs:
   - cmd: cosign
-    stdin: "{{ .Env.COSIGN_PASSWORD }}"
     args:
       - sign
-      - --key=env://COSIGN_PRIVATE_KEY
-      - "${artifact}"
+      - --yes
+      - ${artifact}
     artifacts: all
 
 archives:
