@@ -6,7 +6,6 @@ project_name: templated-secret-controller
 before:
   hooks:
     - go mod tidy
-    - go mod vendor
     - go test ./pkg/... -test.v
 
 builds:
@@ -36,16 +35,11 @@ dockers:
     dockerfile: Dockerfile
     use: buildx
     build_flag_templates:
+      - "--pull"
       - "--label=org.opencontainers.image.created={{.Date}}"
       - "--label=org.opencontainers.image.title={{.ProjectName}}"
       - "--label=org.opencontainers.image.revision={{.FullCommit}}"
       - "--label=org.opencontainers.image.version={{.Version}}"
-    extra_files:
-      - go.mod
-      - go.sum
-      - cmd/
-      - pkg/
-      - vendor/
     goos: linux
     goarch: amd64
     skip_push: auto
@@ -56,16 +50,11 @@ dockers:
     dockerfile: Dockerfile
     use: buildx
     build_flag_templates:
+      - "--pull"
       - "--label=org.opencontainers.image.created={{.Date}}"
       - "--label=org.opencontainers.image.title={{.ProjectName}}"
       - "--label=org.opencontainers.image.revision={{.FullCommit}}"
       - "--label=org.opencontainers.image.version={{.Version}}"
-    extra_files:
-      - go.mod
-      - go.sum
-      - cmd/
-      - pkg/
-      - vendor/
     goos: linux
     goarch: arm64
     skip_push: auto
@@ -76,16 +65,11 @@ dockers:
     dockerfile: Dockerfile
     use: buildx
     build_flag_templates:
+      - "--pull"
       - "--label=org.opencontainers.image.created={{.Date}}"
       - "--label=org.opencontainers.image.title={{.ProjectName}}"
       - "--label=org.opencontainers.image.revision={{.FullCommit}}"
       - "--label=org.opencontainers.image.version={{.Version}}"
-    extra_files:
-      - go.mod
-      - go.sum
-      - cmd/
-      - pkg/
-      - vendor/
     goos: linux
     goarch: arm
     goarm: 6
@@ -97,16 +81,11 @@ dockers:
     dockerfile: Dockerfile
     use: buildx
     build_flag_templates:
+      - "--pull"
       - "--label=org.opencontainers.image.created={{.Date}}"
       - "--label=org.opencontainers.image.title={{.ProjectName}}"
       - "--label=org.opencontainers.image.revision={{.FullCommit}}"
       - "--label=org.opencontainers.image.version={{.Version}}"
-    extra_files:
-      - go.mod
-      - go.sum
-      - cmd/
-      - pkg/
-      - vendor/
     goos: linux
     goarch: arm
     goarm: 7
@@ -118,11 +97,14 @@ docker_manifests:
       - "ghcr.io/{{.Env.REPOSITORY_OWNER}}/{{.Env.REPOSITORY_NAME}}:{{ .Version }}-amd64"
       - "ghcr.io/{{.Env.REPOSITORY_OWNER}}/{{.Env.REPOSITORY_NAME}}:{{ .Version }}-arm64"
       - "ghcr.io/{{.Env.REPOSITORY_OWNER}}/{{.Env.REPOSITORY_NAME}}:{{ .Version }}-arm"
+    skip_push: auto
+
   - name_template: "ghcr.io/{{.Env.REPOSITORY_OWNER}}/{{.Env.REPOSITORY_NAME}}:latest"
     image_templates:
       - "ghcr.io/{{.Env.REPOSITORY_OWNER}}/{{.Env.REPOSITORY_NAME}}:{{ .Version }}-amd64"
       - "ghcr.io/{{.Env.REPOSITORY_OWNER}}/{{.Env.REPOSITORY_NAME}}:{{ .Version }}-arm64"
       - "ghcr.io/{{.Env.REPOSITORY_OWNER}}/{{.Env.REPOSITORY_NAME}}:{{ .Version }}-arm"
+    skip_push: auto
 
 signs:
   - cmd: cosign
@@ -163,3 +145,15 @@ release:
   github:
     owner: "{{.Env.REPOSITORY_OWNER}}"
     name: "{{.Env.REPOSITORY_NAME}}"
+  draft: true
+  prerelease: auto
+  header: |
+    # Release templated-secret-controller {{ .Version }}
+  footer: |
+    ## Docker images
+
+    - `ghcr.io/drae/templated-secret-controller:{{ .Version }}`
+    - `ghcr.io/drae/templated-secret-controller:{{ .Version }}-amd64`
+    - `ghcr.io/drae/templated-secret-controller:{{ .Version }}-arm64`
+    - `ghcr.io/drae/templated-secret-controller:{{ .Version }}-armv6`
+    - `ghcr.io/drae/templated-secret-controller:{{ .Version }}-armv7`
