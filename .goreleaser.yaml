@@ -45,10 +45,12 @@ dockers:
 signs:
   - cmd: cosign
     args:
-      - sign
+      - sign-blob
       - --yes
+      - --output-signature=${signature}
       - ${artifact}
     artifacts: all
+    output: true
 
 archives:
   - # Default format is tar.gz for all platforms
