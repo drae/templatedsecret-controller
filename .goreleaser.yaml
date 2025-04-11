@@ -86,7 +86,7 @@ dockers:
     goarm: 6
     skip_push: auto
 
-  # ARM v7(32-bit) Docker build
+  # ARM v7 (32-bit) Docker build
   - id: templated-secret-controller-linux-armv7
     ids:
       - templated-secret-controller
@@ -110,14 +110,16 @@ docker_manifests:
     image_templates:
       - "ghcr.io/{{.Env.REPOSITORY_OWNER}}/{{.Env.REPOSITORY_NAME}}:{{ .Version }}-amd64"
       - "ghcr.io/{{.Env.REPOSITORY_OWNER}}/{{.Env.REPOSITORY_NAME}}:{{ .Version }}-arm64"
-      - "ghcr.io/{{.Env.REPOSITORY_OWNER}}/{{.Env.REPOSITORY_NAME}}:{{ .Version }}-arm"
+      - "ghcr.io/{{.Env.REPOSITORY_OWNER}}/{{.Env.REPOSITORY_NAME}}:{{ .Version }}-armv6"
+      - "ghcr.io/{{.Env.REPOSITORY_OWNER}}/{{.Env.REPOSITORY_NAME}}:{{ .Version }}-armv7"
     skip_push: auto
 
   - name_template: "ghcr.io/{{.Env.REPOSITORY_OWNER}}/{{.Env.REPOSITORY_NAME}}:latest"
     image_templates:
       - "ghcr.io/{{.Env.REPOSITORY_OWNER}}/{{.Env.REPOSITORY_NAME}}:{{ .Version }}-amd64"
       - "ghcr.io/{{.Env.REPOSITORY_OWNER}}/{{.Env.REPOSITORY_NAME}}:{{ .Version }}-arm64"
-      - "ghcr.io/{{.Env.REPOSITORY_OWNER}}/{{.Env.REPOSITORY_NAME}}:{{ .Version }}-arm"
+      - "ghcr.io/{{.Env.REPOSITORY_OWNER}}/{{.Env.REPOSITORY_NAME}}:{{ .Version }}-armv6"
+      - "ghcr.io/{{.Env.REPOSITORY_OWNER}}/{{.Env.REPOSITORY_NAME}}:{{ .Version }}-armv7"
     skip_push: auto
 
 signs:
