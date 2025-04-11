@@ -20,6 +20,8 @@ builds:
     goarm:
       - "6"
       - "7"
+    flags:
+      - -v
     ldflags:
       - -s
       - -w
@@ -43,6 +45,7 @@ dockers:
       - go.sum
       - cmd/
       - pkg/
+      - vendor/
     goos: linux
     goarch: amd64
     skip_push: auto
@@ -62,6 +65,7 @@ dockers:
       - go.sum
       - cmd/
       - pkg/
+      - vendor/
     goos: linux
     goarch: arm64
     skip_push: auto
@@ -81,6 +85,7 @@ dockers:
       - go.sum
       - cmd/
       - pkg/
+      - vendor/
     goos: linux
     goarch: arm
     goarm: 6
@@ -101,6 +106,7 @@ dockers:
       - go.sum
       - cmd/
       - pkg/
+      - vendor/
     goos: linux
     goarch: arm
     goarm: 7
